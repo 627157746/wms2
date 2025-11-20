@@ -52,7 +52,7 @@ public class InboundOrderDetails extends BaseModel implements Serializable {
      */
     @TableField(value = "material_location_id")
     @Schema(description="物料位ID")
-    private Integer materialLocationId;
+    private Long materialLocationId;
 
     /**
      * 数量
@@ -60,13 +60,6 @@ public class InboundOrderDetails extends BaseModel implements Serializable {
     @TableField(value = "quantity")
     @Schema(description="数量")
     private Integer quantity;
-
-    /**
-     * 货位ID
-     */
-    @TableField(value = "location_id")
-    @Schema(description="货位ID")
-    private Long locationId;
 
     /**
      * 备注

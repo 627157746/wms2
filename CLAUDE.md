@@ -681,38 +681,7 @@ private LambdaQueryWrapper<Module> buildQueryWrapper(ModuleQuery query) {
 
 ---
 
-## 🗄️ Mapper层复杂SQL规范
 
-### 接口定义
-```java
-public interface ModuleMapper extends BaseMapper<Module> {
-
-    // 简单查询使用注解
-    @Select("SELECT * FROM module WHERE code = #{code}")
-    Module selectByCode(@Param("code") String code);
-
-    // 复杂查询返回VO
-    ModuleDetailVO selectModuleDetail(@Param("id") Long id);
-
-    // 分页复杂查询
-    IPage<ModuleListVO> selectModulePage(IPage<ModuleListVO> page, @Param("query") ModuleQuery query);
-
-    // 统计查询
-    List<ModuleStatusCountVO> selectStatusCount();
-
-    // 批量操作
-    int batchUpdateStatus(@Param("ids") List<Long> ids, @Param("status") String status);
-}
-```
-
-### XML实现要点
-- 使用`<sql>`片段定义可重用SQL
-- 动态SQL使用`<if>`、`<choose>`等标签
-- 表别名使用简短有意义的首字母
-- 避免`SELECT *`，明确列出字段
-- 合理使用索引字段进行连接
-
----
 
 ## 🔍 开发检查清单
 
@@ -738,8 +707,6 @@ public interface ModuleMapper extends BaseMapper<Module> {
 - [ ] 参数使用@Param注解明确命名
 - [ ] 方法注释清晰描述功能和参数
 - [ ] 分页查询使用IPage<T>返回
-- [ ] namespace正确指向Mapper接口
-- [ ] resultMap正确定义所有字段映射
 - [ ] 使用SQL片段避免重复代码
 - [ ] 动态SQL使用正确的条件判断标签
 

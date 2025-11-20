@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.time.LocalDate;
 
 /**
  * @Author zhb
@@ -53,7 +53,7 @@ public class OutboundOrders extends BaseModel implements Serializable {
      */
     @TableField(value = "outbound_date")
     @Schema(description="出库日期")
-    private Date outboundDate;
+    private LocalDate outboundDate;
 
     /**
      * 总数量

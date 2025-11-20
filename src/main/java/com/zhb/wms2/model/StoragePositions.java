@@ -38,7 +38,7 @@ public class StoragePositions extends BaseModel implements Serializable {
      */
     @TableField(value = "material_location_id")
     @Schema(description="物料位ID")
-    private Integer materialLocationId;
+    private Long materialLocationId;
 
     /**
      * 当前存放数量

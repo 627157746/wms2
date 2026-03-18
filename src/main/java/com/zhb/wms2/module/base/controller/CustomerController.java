@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/base/customers")
+@RequestMapping("/base/customer")
 @Tag(name = "客户", description = "客户管理")
 @RequiredArgsConstructor
 @Validated
@@ -41,7 +41,7 @@ public class CustomerController {
     public R<Void> update(
             @Parameter(description = "客户", required = true)
             @RequestBody @Validated(Update.class) Customer customer) {
-        customerService.updateById(customer);
+        customerService.updateByIdChecked(customer);
         return R.optOk();
     }
 

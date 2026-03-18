@@ -9,14 +9,14 @@ import com.zhb.wms2.common.validated.Update;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.io.Serializable;
-import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.io.Serializable;
+
 /**
  * @Author zhb
- * @Description 
+ * @Description
  * @Date 2026/3/17 19:35
  */
 /**

@@ -18,7 +18,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/base/deliverymen")
+@RequestMapping("/base/deliveryman")
 @Tag(name = "送货员", description = "送货员管理")
 @RequiredArgsConstructor
 @Validated
@@ -40,7 +40,7 @@ public class DeliverymanController {
     public R<Void> update(
             @Parameter(description = "送货员", required = true)
             @RequestBody @Validated(Update.class) Deliveryman deliveryman) {
-        deliverymanService.updateById(deliveryman);
+        deliverymanService.updateByIdChecked(deliveryman);
         return R.optOk();
     }
 

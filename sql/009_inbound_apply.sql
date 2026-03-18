@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS inbound_apply (
   apply_date DATE NOT NULL COMMENT '申请日期',
   applicant_name VARCHAR(64) NULL COMMENT '申请人',
   deliveryman_id BIGINT NULL COMMENT '送货员ID',
-  inbound_type_id BIGINT NULL COMMENT '入库类型ID',
+  inbound_type_id BIGINT NULL COMMENT '出入库类型ID（入库）',
   remark VARCHAR(255) NULL COMMENT '备注',
   approve_status TINYINT NOT NULL DEFAULT 0 COMMENT '是否审批：0-未审批 1-已审批',
   inbound_status TINYINT NOT NULL DEFAULT 0 COMMENT '是否入库：0-未入库 1-已入库',
@@ -17,6 +17,6 @@ CREATE TABLE IF NOT EXISTS inbound_apply (
   delete_flag BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标记'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='入库申请';
 
-CREATE UNIQUE INDEX uk_inbound_apply_no ON inbound_apply(apply_no);
+CREATE UNIQUE INDEX uk_inbound_apply_no ON inbound_apply(apply_no, delete_flag);
 CREATE INDEX idx_inbound_apply_date ON inbound_apply(apply_date);
 CREATE INDEX idx_inbound_apply_status ON inbound_apply(approve_status, inbound_status);

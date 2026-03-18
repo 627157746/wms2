@@ -84,6 +84,13 @@ public class Product extends BaseModel implements Serializable {
     private BigDecimal initialStock;
 
     /**
+     * 期初库存货位ID，为空表示无货位
+     */
+    @TableField(value = "initial_stock_location_id")
+    @Schema(description="期初库存货位ID，为空表示无货位")
+    private Long initialStockLocationId;
+
+    /**
      * 备注
      */
     @TableField(value = "remark")

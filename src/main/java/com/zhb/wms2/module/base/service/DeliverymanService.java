@@ -17,5 +17,7 @@ public interface DeliverymanService extends IService<Deliveryman> {
 
     List<Deliveryman> listAll();
 
+    void updateByIdChecked(Deliveryman deliveryman);
+
     void removeByIdChecked(Long id);
 }

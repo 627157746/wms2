@@ -18,7 +18,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/base/product-locations")
+@RequestMapping("/base/productLocation")
 @Tag(name = "商品货位", description = "商品货位管理")
 @RequiredArgsConstructor
 @Validated
@@ -40,7 +40,7 @@ public class ProductLocationController {
     public R<Void> update(
             @Parameter(description = "商品货位", required = true)
             @RequestBody @Validated(Update.class) ProductLocation location) {
-        productLocationService.updateById(location);
+        productLocationService.updateByIdChecked(location);
         return R.optOk();
     }
 

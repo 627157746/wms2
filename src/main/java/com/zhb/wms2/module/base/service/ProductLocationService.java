@@ -16,5 +16,7 @@ public interface ProductLocationService extends IService<ProductLocation> {
 
     List<ProductLocation> listAll();
 
+    void updateByIdChecked(ProductLocation location);
+
     void removeByIdChecked(Long id);
 }

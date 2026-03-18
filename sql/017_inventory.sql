@@ -11,4 +11,4 @@ CREATE TABLE IF NOT EXISTS inventory (
   delete_flag BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标记'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='库存主表';
 
-CREATE UNIQUE INDEX uk_inventory_product ON inventory(product_id);
+CREATE UNIQUE INDEX uk_inventory_product ON inventory(product_id, delete_flag);

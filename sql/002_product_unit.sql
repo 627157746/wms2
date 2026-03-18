@@ -10,4 +10,4 @@ CREATE TABLE IF NOT EXISTS product_unit (
   delete_flag BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标记'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商品单位';
 
-CREATE UNIQUE INDEX uk_product_unit_name ON product_unit(name);
+CREATE UNIQUE INDEX uk_product_unit_name ON product_unit(name, delete_flag);

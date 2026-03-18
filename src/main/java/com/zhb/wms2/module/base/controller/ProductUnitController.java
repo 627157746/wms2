@@ -18,7 +18,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/base/product-units")
+@RequestMapping("/base/productUnit")
 @Tag(name = "商品单位", description = "商品单位管理")
 @RequiredArgsConstructor
 @Validated
@@ -40,7 +40,7 @@ public class ProductUnitController {
     public R<Void> update(
             @Parameter(description = "商品单位", required = true)
             @RequestBody @Validated(Update.class) ProductUnit unit) {
-        productUnitService.updateById(unit);
+        productUnitService.updateByIdChecked(unit);
         return R.optOk();
     }
 

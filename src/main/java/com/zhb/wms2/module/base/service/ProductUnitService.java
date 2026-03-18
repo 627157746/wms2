@@ -16,5 +16,7 @@ public interface ProductUnitService extends IService<ProductUnit> {
 
     List<ProductUnit> listAll();
 
+    void updateByIdChecked(ProductUnit unit);
+
     void removeByIdChecked(Long id);
 }

@@ -16,5 +16,7 @@ public interface CustomerService extends IService<Customer> {
 
     List<Customer> listAll();
 
+    void updateByIdChecked(Customer customer);
+
     void removeByIdChecked(Long id);
 }

@@ -1,5 +1,5 @@
--- 货位
-CREATE TABLE IF NOT EXISTS location (
+-- 商品货位
+CREATE TABLE IF NOT EXISTS product_location (
   id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
   code VARCHAR(50) NOT NULL COMMENT '货位编码，如1-1',
   sort_order INT NOT NULL DEFAULT 0 COMMENT '排序',
@@ -8,6 +8,6 @@ CREATE TABLE IF NOT EXISTS location (
   create_by VARCHAR(64) NULL COMMENT '创建人',
   update_by VARCHAR(64) NULL COMMENT '更新人',
   delete_flag BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标记'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='货位';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商品货位';
 
-CREATE UNIQUE INDEX uk_location_code ON location(code);
+CREATE UNIQUE INDEX uk_product_location_code ON product_location(code, delete_flag);

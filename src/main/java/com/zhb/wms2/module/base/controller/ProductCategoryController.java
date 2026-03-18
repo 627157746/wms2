@@ -1,11 +1,10 @@
 package com.zhb.wms2.module.base.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.zhb.wms2.common.model.R;
 import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
 import com.zhb.wms2.module.base.model.entity.ProductCategory;
-import com.zhb.wms2.module.base.model.query.ProductCategoryQuery;
+import com.zhb.wms2.module.base.model.vo.ProductCategoryTreeVO;
 import com.zhb.wms2.module.base.service.ProductCategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,7 +17,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/base/product-categories")
+@RequestMapping("/base/productCategory")
 @Tag(name = "商品分类", description = "商品分类管理")
 @RequiredArgsConstructor
 @Validated
@@ -40,7 +39,7 @@ public class ProductCategoryController {
     public R<Void> update(
             @Parameter(description = "商品分类", required = true)
             @RequestBody @Validated(Update.class) ProductCategory category) {
-        productCategoryService.updateById(category);
+        productCategoryService.updateByIdChecked(category);
         return R.optOk();
     }
 
@@ -52,18 +51,10 @@ public class ProductCategoryController {
         return R.ok(productCategoryService.getById(id));
     }
 
-    @GetMapping("/page")
-    @Operation(summary = "分页查询商品分类")
-    public R<IPage<ProductCategory>> page(
-            @Parameter(description = "查询条件")
-            @Validated ProductCategoryQuery query) {
-        return R.ok(productCategoryService.pageQuery(query));
-    }
-
-    @GetMapping("/all")
-    @Operation(summary = "查询全部商品分类")
-    public R<List<ProductCategory>> all() {
-        return R.ok(productCategoryService.listAll());
+    @GetMapping("/tree")
+    @Operation(summary = "树形查询商品分类")
+    public R<List<ProductCategoryTreeVO>> tree() {
+        return R.ok(productCategoryService.tree());
     }
 
     @DeleteMapping("/{id}")

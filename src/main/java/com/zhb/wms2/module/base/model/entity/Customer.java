@@ -11,14 +11,14 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.io.Serializable;
-import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.io.Serializable;
+
 /**
  * @Author zhb
- * @Description 
+ * @Description
  * @Date 2026/3/17 19:34
  */
 
@@ -81,6 +81,7 @@ public class Customer extends BaseModel implements Serializable {
      */
     @TableField(value = "`scope`")
     @Schema(description = "适用范围：0-不限 1-出库 2-入库")
+    @NotNull(message = "适用范围不能为空")
     @Min(value = 0, message = "适用范围不正确")
     @Max(value = 2, message = "适用范围不正确")
     private Integer scope;

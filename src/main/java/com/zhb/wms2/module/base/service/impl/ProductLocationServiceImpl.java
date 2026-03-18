@@ -1,5 +1,6 @@
 package com.zhb.wms2.module.base.service.impl;
 
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -9,18 +10,18 @@ import com.zhb.wms2.module.base.mapper.ProductLocationMapper;
 import com.zhb.wms2.module.base.model.entity.ProductLocation;
 import com.zhb.wms2.module.base.model.query.ProductLocationQuery;
 import com.zhb.wms2.module.base.service.ProductLocationService;
-import com.zhb.wms2.module.inbound.model.entity.InboundOrderDetail;
-import com.zhb.wms2.module.inbound.service.InboundOrderDetailService;
+import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
+import com.zhb.wms2.module.io.model.entity.IoOrderDetail;
+import com.zhb.wms2.module.io.service.IoOrderDetailService;
 import com.zhb.wms2.module.inventory.model.entity.Inventory;
 import com.zhb.wms2.module.inventory.model.entity.InventoryDetail;
 import com.zhb.wms2.module.inventory.service.InventoryDetailService;
 import com.zhb.wms2.module.inventory.service.InventoryService;
-import com.zhb.wms2.module.outbound.model.entity.OutboundOrderDetail;
-import com.zhb.wms2.module.outbound.service.OutboundOrderDetailService;
+import com.zhb.wms2.module.product.model.entity.Product;
+import com.zhb.wms2.module.product.service.ProductService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 /**
  * @Author zhb
@@ -31,10 +32,21 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class ProductLocationServiceImpl extends ServiceImpl<ProductLocationMapper, ProductLocation> implements ProductLocationService {
 
-    private final InboundOrderDetailService inboundOrderDetailService;
-    private final OutboundOrderDetailService outboundOrderDetailService;
+    private final IoOrderDetailService ioOrderDetailService;
     private final InventoryDetailService inventoryDetailService;
     private final InventoryService inventoryService;
+    private final ProductService productService;
+    private final BaseDictMapStore baseDictMapStore;
+
+    @Override
+    public boolean save(ProductLocation location) {
+        validateCodeUnique(location.getCode(), null);
+        boolean saved = super.save(location);
+        if (saved) {
+            baseDictMapStore.clearProductLocationMap();
+        }
+        return saved;
+    }
 
     @Override
     public IPage<ProductLocation> pageQuery(ProductLocationQuery query) {
@@ -48,16 +60,23 @@ public class ProductLocationServiceImpl extends ServiceImpl<ProductLocationMappe
     }
 
     @Override
-    public void removeByIdChecked(Long id) {
-        long inboundCount = inboundOrderDetailService.count(
-                new LambdaQueryWrapper<InboundOrderDetail>().eq(InboundOrderDetail::getLocationId, id));
-        if (inboundCount > 0) {
-            throw new BaseException("该货位已被入库单使用，无法删除");
+    public void updateByIdChecked(ProductLocation location) {
+        if (getById(location.getId()) == null) {
+            throw new BaseException("商品货位不存在");
         }
-        long outboundCount = outboundOrderDetailService.count(
-                new LambdaQueryWrapper<OutboundOrderDetail>().eq(OutboundOrderDetail::getLocationId, id));
-        if (outboundCount > 0) {
-            throw new BaseException("该货位已被出库单使用，无法删除");
+        validateCodeUnique(location.getCode(), location.getId());
+        if (!updateById(location)) {
+            throw new BaseException("商品货位不存在");
+        }
+        baseDictMapStore.clearProductLocationMap();
+    }
+
+    @Override
+    public void removeByIdChecked(Long id) {
+        long ioOrderDetailCount = ioOrderDetailService.count(
+                new LambdaQueryWrapper<IoOrderDetail>().eq(IoOrderDetail::getLocationId, id));
+        if (ioOrderDetailCount > 0) {
+            throw new BaseException("该货位已被出入库记录使用，无法删除");
         }
         long inventoryDetailCount = inventoryDetailService.count(
                 new LambdaQueryWrapper<InventoryDetail>().eq(InventoryDetail::getLocationId, id));
@@ -69,12 +88,29 @@ public class ProductLocationServiceImpl extends ServiceImpl<ProductLocationMappe
         if (inventoryCount > 0) {
             throw new BaseException("该货位已被库存主表使用，无法删除");
         }
-        removeById(id);
+        long productCount = productService.count(
+                new LambdaQueryWrapper<Product>().eq(Product::getInitialStockLocationId, id));
+        if (productCount > 0) {
+            throw new BaseException("该货位已被商品期初库存使用，无法删除");
+        }
+        if (!removeById(id)) {
+            throw new BaseException("商品货位不存在");
+        }
+        baseDictMapStore.clearProductLocationMap();
     }
 
     private LambdaQueryWrapper<ProductLocation> buildWrapper(ProductLocationQuery query) {
         return new LambdaQueryWrapper<ProductLocation>()
-                .like(StringUtils.hasText(query.getCode()), ProductLocation::getCode, query.getCode())
+                .like(StrUtil.isNotBlank(query.getCode()), ProductLocation::getCode, query.getCode())
                 .orderByDesc(ProductLocation::getId);
+    }
+
+    private void validateCodeUnique(String code, Long excludeId) {
+        LambdaQueryWrapper<ProductLocation> wrapper = new LambdaQueryWrapper<ProductLocation>()
+                .eq(ProductLocation::getCode, code)
+                .ne(excludeId != null, ProductLocation::getId, excludeId);
+        if (count(wrapper) > 0) {
+            throw new BaseException("货位编码已存在");
+        }
     }
 }

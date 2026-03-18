@@ -12,5 +12,6 @@ CREATE TABLE IF NOT EXISTS product_category (
   delete_flag BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标记'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商品分类';
 
+CREATE UNIQUE INDEX uk_product_category_name ON product_category(name, delete_flag);
 CREATE INDEX idx_product_category_parent ON product_category(parent_id);
 CREATE INDEX idx_product_category_sort ON product_category(sort_order);

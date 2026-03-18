@@ -5,8 +5,8 @@ import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.ReflectUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.zhb.wms2.common.BaseQuery;
-import com.zhb.wms2.common.BaseSortQuery;
+import com.zhb.wms2.common.model.BaseQuery;
+import com.zhb.wms2.common.model.BaseSortQuery;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;

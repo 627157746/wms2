@@ -78,15 +78,6 @@ src/main/java/com/zhb/wms2/
 
 ## 📦 业务模块
 
-### 核心实体
-| 模块 | 描述 |
-|------|------|
-| Products | 商品信息管理 |
-| WarehouseTypes | 仓库类型管理 |
-| InboundOrders/Details | 入库订单及明细 |
-| OutboundOrders/Details | 出库订单及明细 |
-| StoragePositions | 存储位置管理 |
-| MaterialLocations | 物料位置管理 |
 
 ### 标准开发模式
 每个业务模块遵循统一的开发模式：
@@ -115,26 +106,26 @@ public class ModuleController {
 ```
 
 #### 标准接口方法
+
 ```java
+import com.zhb.wms2.common.validated.Update;
+
 // 新增
 @PostMapping
 @Operation(summary = "添加模块信息")
 public R<Long> save(
         @Parameter(description = "模块信息", required = true)
-        @RequestBody @Validated Module module) {
+        @RequestBody @Validated(Save.class) Module module) {
     Long id = moduleService.addModule(module);
     return R.ok(id);
 }
 
 // 更新
-@PutMapping("/{id}")
+@PutMapping
 @Operation(summary = "修改模块信息")
 public R<Void> update(
-        @Parameter(description = "模块ID", required = true)
-        @PathVariable @NotNull @Min(1) Long id,
         @Parameter(description = "模块信息", required = true)
-        @RequestBody @Validated Module module) {
-    module.setId(id);
+        @RequestBody @Validated(Update.class) Module module) {
     moduleService.updateModule(module);
     return R.optOk();
 }
@@ -300,7 +291,7 @@ public class ModuleQuery extends BaseQuery {
     private String status;
 
     @Schema(description = "开始时间")
-    private LocalDateTime startTime;
+    private LocalDateTime beginTime;
 
     @Schema(description = "结束时间")
     private LocalDateTime endTime;
@@ -330,10 +321,11 @@ public class ModuleVO {
     private String creatorName; // 关联查询的用户名
 }
 
-// 2. 需要数据脱敏时
-public class UserVO {
-    private String phone;       // 138****1234
-    private String email;       // t***@example.com
+
+// 2. 需要在原基础增加额外字段
+public class ModuleVO extends Module {
+    private String statusDesc;  // 状态描述（非数据库字段）
+    private String creatorName; // 关联查询的用户名
 }
 
 // 3. 需要数据聚合时
@@ -361,12 +353,6 @@ public R<Module> getInternalById(@PathVariable Long id) {
     return R.ok(moduleService.getById(id));
 }
 
-// 3. 管理后台，字段基本完整
-@GetMapping("/admin/list")
-public R<IPage<Module>> adminList(ModuleQuery query) {
-    // 管理后台需要查看大部分字段，直接返回Model
-    return R.ok(moduleService.queryPage(query));
-}
 ```
 
 #### ✅ 需要使用DTO的场景
@@ -404,19 +390,20 @@ public class ModuleImportDTO {
 ```
 
 #### ❌ 可以不使用DTO的场景
+
 ```java
+import com.zhb.wms2.common.validated.Update;
+
 // 1. 简单的新增操作，字段一一对应
 @PostMapping
-public R<Long> save(@RequestBody @Validated Module module) {
+public R<Long> save(@RequestBody @Validated(Save.class) Module module) {
     // 字段基本一致，直接使用Model
     return R.ok(moduleService.addModule(module));
 }
 
 // 2. 简单的更新操作
-@PutMapping("/{id}")
-public R<Void> update(@PathVariable Long id,
-                     @RequestBody @Validated Module module) {
-    module.setId(id);
+@PutMapping
+public R<Void> update(@RequestBody @Validated(Update.class) Module module) {
     moduleService.updateById(module);
     return R.optOk();
 }
@@ -427,7 +414,6 @@ public R<Void> update(@PathVariable Long id,
 ```java
 // 实体类
 public class Module { }
-public class User { }
 
 // VO类 - 体现展示用途
 public class ModuleVO { }           // 标准VO
@@ -582,13 +568,6 @@ public class ModuleConverter {
 @Max(value = 999, message = "值不能大于999")
 @Range(min = 1, max = 999, message = "值必须在1-999之间")
 
-// 日期验证
-@Future(message = "必须是未来日期")
-@Past(message = "必须是过去日期")
-
-// 其他验证
-@Email(message = "邮箱格式不正确")
-@Positive(message = "必须是正数")
 ```
 
 ### Controller参数校验
@@ -726,14 +705,6 @@ private LambdaQueryWrapper<Module> buildQueryWrapper(ModuleQuery query) {
 - **API路径**: /v3/api-docs
 - **语言**: 中文
 
-### 数据库配置
-- **连接池**: HikariCP（最小5个，最大20个连接）
-- **逻辑删除**: 全局配置，delete_flag字段
-- **分页插件**: 最大限制100条
-
-### 日志配置
-- **SQL日志**: 开发环境启用StdOutImpl
-- **应用日志**: logging.level.com.zhb.wms=debug
 
 ---
 

@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zhb.wms2.module.io.mapper.IoOrderDetailMapper">
+
+    <select id="sumDeltaToDetailIdByProductId" resultType="java.lang.Long">
+        select coalesce(sum(case
+                                when d.order_type = 1 then d.qty
+                                else -d.qty
+            end), 0)
+        from io_order_detail d
+        where d.product_id = #{productId}
+          and d.id &lt;= #{detailId}
+    </select>
 </mapper>

@@ -21,4 +21,7 @@ public class ProductQuery extends BaseQuery {
 
     @Schema(description = "商品单位ID")
     private Long unitId;
+
+    @Schema(description = "是否包含0库存，true包含，false不包含")
+    private Boolean includeZeroStock;
 }

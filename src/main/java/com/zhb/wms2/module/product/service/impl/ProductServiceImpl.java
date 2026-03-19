@@ -143,6 +143,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .like(StrUtil.isNotBlank(query.getCode()), Product::getCode, query.getCode())
                 .eq(query.getCategoryId() != null, Product::getCategoryId, query.getCategoryId())
                 .eq(query.getUnitId() != null, Product::getUnitId, query.getUnitId())
+                .inSql(Boolean.FALSE.equals(query.getIncludeZeroStock()), Product::getId,
+                        "select product_id from inventory where total_qty > 0")
                 .orderByDesc(Product::getId);
     }
 

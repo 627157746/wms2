@@ -35,10 +35,6 @@ public class IoApply extends BaseModel implements Serializable {
     @Schema(description = "申请日期")
     private LocalDate applyDate;
 
-    @TableField(value = "applicant_name")
-    @Schema(description = "申请人")
-    private String applicantName;
-
     @TableField(value = "deliveryman_id")
     @Schema(description = "送货员ID")
     private Long deliverymanId;

@@ -1,5 +1,12 @@
 package com.zhb.wms2.module.base.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.zhb.wms2.module.base.mapper.CustomerMapper;
+import com.zhb.wms2.module.base.mapper.DeliverymanMapper;
+import com.zhb.wms2.module.base.mapper.IoTypeMapper;
+import com.zhb.wms2.module.base.mapper.ProductCategoryMapper;
+import com.zhb.wms2.module.base.mapper.ProductLocationMapper;
+import com.zhb.wms2.module.base.mapper.ProductUnitMapper;
 import com.zhb.wms2.module.base.model.dto.BaseDictMapDTO;
 import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
@@ -8,12 +15,6 @@ import com.zhb.wms2.module.base.model.entity.ProductCategory;
 import com.zhb.wms2.module.base.model.entity.ProductLocation;
 import com.zhb.wms2.module.base.model.entity.ProductUnit;
 import com.zhb.wms2.module.base.service.BaseDictMapService;
-import com.zhb.wms2.module.base.service.CustomerService;
-import com.zhb.wms2.module.base.service.DeliverymanService;
-import com.zhb.wms2.module.base.service.IoTypeService;
-import com.zhb.wms2.module.base.service.ProductCategoryService;
-import com.zhb.wms2.module.base.service.ProductLocationService;
-import com.zhb.wms2.module.base.service.ProductUnitService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -33,12 +34,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class BaseDictMapServiceImpl implements BaseDictMapService {
 
-    private final CustomerService customerService;
-    private final DeliverymanService deliverymanService;
-    private final IoTypeService ioTypeService;
-    private final ProductCategoryService productCategoryService;
-    private final ProductLocationService productLocationService;
-    private final ProductUnitService productUnitService;
+    private final CustomerMapper customerMapper;
+    private final DeliverymanMapper deliverymanMapper;
+    private final IoTypeMapper ioTypeMapper;
+    private final ProductCategoryMapper productCategoryMapper;
+    private final ProductLocationMapper productLocationMapper;
+    private final ProductUnitMapper productUnitMapper;
     private final BaseDictMapStore baseDictMapStore;
 
     @Override
@@ -61,7 +62,8 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
         synchronized (baseDictMapStore) {
             customerMap = baseDictMapStore.getCustomerMap();
             if (customerMap == null) {
-                customerMap = buildMap(customerService.listAll(), Customer::getId);
+                customerMap = buildMap(customerMapper.selectList(new LambdaQueryWrapper<Customer>()
+                        .orderByDesc(Customer::getId)), Customer::getId);
                 baseDictMapStore.setCustomerMap(customerMap);
             }
             return customerMap;
@@ -76,7 +78,8 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
         synchronized (baseDictMapStore) {
             deliverymanMap = baseDictMapStore.getDeliverymanMap();
             if (deliverymanMap == null) {
-                deliverymanMap = buildMap(deliverymanService.listAll(), Deliveryman::getId);
+                deliverymanMap = buildMap(deliverymanMapper.selectList(new LambdaQueryWrapper<Deliveryman>()
+                        .orderByDesc(Deliveryman::getId)), Deliveryman::getId);
                 baseDictMapStore.setDeliverymanMap(deliverymanMap);
             }
             return deliverymanMap;
@@ -91,7 +94,8 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
         synchronized (baseDictMapStore) {
             ioTypeMap = baseDictMapStore.getIoTypeMap();
             if (ioTypeMap == null) {
-                ioTypeMap = buildMap(ioTypeService.listAll(), IoType::getId);
+                ioTypeMap = buildMap(ioTypeMapper.selectList(new LambdaQueryWrapper<IoType>()
+                        .orderByDesc(IoType::getId)), IoType::getId);
                 baseDictMapStore.setIoTypeMap(ioTypeMap);
             }
             return ioTypeMap;
@@ -106,7 +110,8 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
         synchronized (baseDictMapStore) {
             productCategoryMap = baseDictMapStore.getProductCategoryMap();
             if (productCategoryMap == null) {
-                productCategoryMap = buildMap(productCategoryService.list(), ProductCategory::getId);
+                productCategoryMap = buildMap(productCategoryMapper.selectList(new LambdaQueryWrapper<ProductCategory>()
+                        .orderByDesc(ProductCategory::getId)), ProductCategory::getId);
                 baseDictMapStore.setProductCategoryMap(productCategoryMap);
             }
             return productCategoryMap;
@@ -121,7 +126,8 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
         synchronized (baseDictMapStore) {
             productLocationMap = baseDictMapStore.getProductLocationMap();
             if (productLocationMap == null) {
-                productLocationMap = buildMap(productLocationService.listAll(), ProductLocation::getId);
+                productLocationMap = buildMap(productLocationMapper.selectList(new LambdaQueryWrapper<ProductLocation>()
+                        .orderByDesc(ProductLocation::getId)), ProductLocation::getId);
                 baseDictMapStore.setProductLocationMap(productLocationMap);
             }
             return productLocationMap;
@@ -136,7 +142,8 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
         synchronized (baseDictMapStore) {
             productUnitMap = baseDictMapStore.getProductUnitMap();
             if (productUnitMap == null) {
-                productUnitMap = buildMap(productUnitService.listAll(), ProductUnit::getId);
+                productUnitMap = buildMap(productUnitMapper.selectList(new LambdaQueryWrapper<ProductUnit>()
+                        .orderByDesc(ProductUnit::getId)), ProductUnit::getId);
                 baseDictMapStore.setProductUnitMap(productUnitMap);
             }
             return productUnitMap;

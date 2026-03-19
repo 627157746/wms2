@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -60,9 +59,9 @@ public class ProductCategory extends BaseModel implements Serializable {
     private Integer sortOrder;
 
     /**
-     * 层级
+     * 层级，由系统计算
      */
     @TableField(value = "`level`")
-    @Schema(description="层级")
+    @Schema(description="层级，由系统计算")
     private Integer level;
 }

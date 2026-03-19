@@ -1,0 +1,62 @@
+package com.zhb.wms2.module.product.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.zhb.wms2.common.model.R;
+import com.zhb.wms2.common.validated.Save;
+import com.zhb.wms2.common.validated.Update;
+import com.zhb.wms2.module.product.model.entity.Product;
+import com.zhb.wms2.module.product.model.query.ProductQuery;
+import com.zhb.wms2.module.product.service.ProductService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/product/product")
+@Tag(name = "商品", description = "商品管理")
+@RequiredArgsConstructor
+@Validated
+public class ProductController {
+
+    private final ProductService productService;
+
+    @PostMapping
+    @Operation(summary = "新增商品")
+    public R<Long> create(
+            @Parameter(description = "商品", required = true)
+            @RequestBody @Validated(Save.class) Product product) {
+        productService.saveChecked(product);
+        return R.ok(product.getId());
+    }
+
+    @PutMapping
+    @Operation(summary = "修改商品")
+    public R<Void> update(
+            @Parameter(description = "商品", required = true)
+            @RequestBody @Validated(Update.class) Product product) {
+        productService.updateByIdChecked(product);
+        return R.optOk();
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "分页查询商品")
+    public R<IPage<? extends Product>> page(
+            @Parameter(description = "查询条件")
+            @Validated ProductQuery query) {
+        return R.ok(productService.pageQuery(query));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除商品")
+    public R<Void> delete(
+            @Parameter(description = "商品ID", required = true)
+            @PathVariable @NotNull @Min(1) Long id) {
+        productService.removeByIdChecked(id);
+        return R.optOk();
+    }
+}

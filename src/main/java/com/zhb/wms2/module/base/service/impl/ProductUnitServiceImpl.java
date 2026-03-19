@@ -11,8 +11,8 @@ import com.zhb.wms2.module.base.model.entity.ProductUnit;
 import com.zhb.wms2.module.base.model.query.ProductUnitQuery;
 import com.zhb.wms2.module.base.service.ProductUnitService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
+import com.zhb.wms2.module.product.mapper.ProductMapper;
 import com.zhb.wms2.module.product.model.entity.Product;
-import com.zhb.wms2.module.product.service.ProductService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,17 +26,16 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ProductUnitServiceImpl extends ServiceImpl<ProductUnitMapper, ProductUnit> implements ProductUnitService {
 
-    private final ProductService productService;
+    private final ProductMapper productMapper;
     private final BaseDictMapStore baseDictMapStore;
 
     @Override
-    public boolean save(ProductUnit unit) {
+    public void saveChecked(ProductUnit unit) {
         validateNameUnique(unit.getName(), null);
-        boolean saved = super.save(unit);
-        if (saved) {
-            baseDictMapStore.clearProductUnitMap();
+        if (!super.save(unit)) {
+            throw new BaseException("商品单位新增失败");
         }
-        return saved;
+        baseDictMapStore.clearProductUnitMap();
     }
 
     @Override
@@ -64,7 +63,7 @@ public class ProductUnitServiceImpl extends ServiceImpl<ProductUnitMapper, Produ
 
     @Override
     public void removeByIdChecked(Long id) {
-        long count = productService.count(new LambdaQueryWrapper<Product>().eq(Product::getUnitId, id));
+        long count = productMapper.selectCount(new LambdaQueryWrapper<Product>().eq(Product::getUnitId, id));
         if (count > 0) {
             throw new BaseException("该单位已被商品使用，无法删除");
         }

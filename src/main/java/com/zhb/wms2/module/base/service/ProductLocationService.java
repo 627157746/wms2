@@ -12,6 +12,8 @@ import java.util.List;
  */
 public interface ProductLocationService extends IService<ProductLocation> {
 
+    void saveChecked(ProductLocation location);
+
     IPage<ProductLocation> pageQuery(ProductLocationQuery query);
 
     List<ProductLocation> listAll();

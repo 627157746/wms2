@@ -28,10 +28,10 @@ public class ProductUnitController {
 
     @PostMapping
     @Operation(summary = "新增商品单位")
-    public R<Long> save(
+    public R<Long> create(
             @Parameter(description = "商品单位", required = true)
             @RequestBody @Validated(Save.class) ProductUnit unit) {
-        productUnitService.save(unit);
+        productUnitService.saveChecked(unit);
         return R.ok(unit.getId());
     }
 

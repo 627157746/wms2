@@ -28,10 +28,10 @@ public class ProductLocationController {
 
     @PostMapping
     @Operation(summary = "新增商品货位")
-    public R<Long> save(
+    public R<Long> create(
             @Parameter(description = "商品货位", required = true)
             @RequestBody @Validated(Save.class) ProductLocation location) {
-        productLocationService.save(location);
+        productLocationService.saveChecked(location);
         return R.ok(location.getId());
     }
 

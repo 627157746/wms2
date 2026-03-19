@@ -13,6 +13,8 @@ import java.util.List;
  */
 public interface DeliverymanService extends IService<Deliveryman> {
 
+    void saveChecked(Deliveryman deliveryman);
+
     IPage<Deliveryman> pageQuery(DeliverymanQuery query);
 
     List<Deliveryman> listAll();

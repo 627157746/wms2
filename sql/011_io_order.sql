@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS io_order (
   id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
   order_no VARCHAR(32) NOT NULL COMMENT '单号，如RK000001/CK000001',
   order_type TINYINT NOT NULL COMMENT '单据类型：1-入库 2-出库',
-  apply_id BIGINT NULL COMMENT '来源申请ID，可为空',
+  apply_id BIGINT NULL COMMENT '来源出入库申请ID，可为空',
   biz_date DATE NOT NULL COMMENT '业务日期',
   deliveryman_id BIGINT NULL COMMENT '送货员ID',
   customer_id BIGINT NULL COMMENT '客户ID，仅出库使用',

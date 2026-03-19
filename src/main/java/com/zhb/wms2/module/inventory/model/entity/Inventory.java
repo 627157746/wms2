@@ -6,15 +6,14 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.zhb.wms2.common.model.BaseModel;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.io.Serializable;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.io.Serializable;
+
 /**
  * @Author zhb
- * @Description 
+ * @Description
  * @Date 2026/3/17 19:38
  */
 /**
@@ -46,12 +45,12 @@ public class Inventory extends BaseModel implements Serializable {
      */
     @TableField(value = "total_qty")
     @Schema(description="总库存数")
-    private BigDecimal totalQty;
+    private Long totalQty;
 
     /**
      * 货位IDs，逗号分隔
      */
-    @TableField(value = "location_ids")
+    @TableField(value = "location_ids_str")
     @Schema(description="货位IDs，逗号分隔")
-    private String locationIds;
+    private String locationIdsStr;
 }

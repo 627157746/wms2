@@ -28,10 +28,10 @@ public class IoTypeController {
 
     @PostMapping
     @Operation(summary = "新增出入库类型")
-    public R<Long> save(
+    public R<Long> create(
             @Parameter(description = "出入库类型", required = true)
             @RequestBody @Validated(Save.class) IoType ioType) {
-        ioTypeService.save(ioType);
+        ioTypeService.saveChecked(ioType);
         return R.ok(ioType.getId());
     }
 

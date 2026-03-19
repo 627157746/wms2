@@ -29,10 +29,10 @@ public class CustomerController {
 
     @PostMapping
     @Operation(summary = "新增客户")
-    public R<Long> save(
+    public R<Long> create(
             @Parameter(description = "客户", required = true)
             @RequestBody @Validated(Save.class) Customer customer) {
-        customerService.save(customer);
+        customerService.saveChecked(customer);
         return R.ok(customer.getId());
     }
 

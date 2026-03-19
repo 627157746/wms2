@@ -28,10 +28,10 @@ public class DeliverymanController {
 
     @PostMapping
     @Operation(summary = "新增送货员")
-    public R<Long> save(
+    public R<Long> create(
             @Parameter(description = "送货员", required = true)
             @RequestBody @Validated(Save.class) Deliveryman deliveryman) {
-        deliverymanService.save(deliveryman);
+        deliverymanService.saveChecked(deliveryman);
         return R.ok(deliveryman.getId());
     }
 

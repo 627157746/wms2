@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface IoTypeService extends IService<IoType> {
 
+    void saveChecked(IoType ioType);
+
     IPage<IoType> pageQuery(IoTypeQuery query);
 
     List<IoType> listAll();

@@ -12,6 +12,8 @@ import java.util.List;
  */
 public interface CustomerService extends IService<Customer> {
 
+    void saveChecked(Customer customer);
+
     IPage<Customer> pageQuery(CustomerQuery query);
 
     List<Customer> listAll();

@@ -12,6 +12,8 @@ import java.util.List;
  */
 public interface ProductCategoryService extends IService<ProductCategory> {
 
+    void saveChecked(ProductCategory category);
+
     List<ProductCategoryTreeVO> tree();
 
     void updateByIdChecked(ProductCategory category);

@@ -7,8 +7,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.zhb.wms2.common.model.BaseModel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -53,5 +51,5 @@ public class InventoryDetail extends BaseModel implements Serializable {
      */
     @TableField(value = "qty")
     @Schema(description="库存数量")
-    private BigDecimal qty;
+    private Long qty;
 }

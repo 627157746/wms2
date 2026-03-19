@@ -27,10 +27,10 @@ public class ProductCategoryController {
 
     @PostMapping
     @Operation(summary = "新增商品分类")
-    public R<Long> save(
+    public R<Long> create(
             @Parameter(description = "商品分类", required = true)
             @RequestBody @Validated(Save.class) ProductCategory category) {
-        productCategoryService.save(category);
+        productCategoryService.saveChecked(category);
         return R.ok(category.getId());
     }
 

@@ -5,18 +5,17 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zhb.wms2.common.constant.IoBizTypeConstant;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.mapper.DeliverymanMapper;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
 import com.zhb.wms2.module.base.model.query.DeliverymanQuery;
 import com.zhb.wms2.module.base.service.DeliverymanService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
-import com.zhb.wms2.module.inbound.model.entity.InboundApply;
-import com.zhb.wms2.module.inbound.service.InboundApplyService;
+import com.zhb.wms2.module.io.model.entity.IoApply;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
+import com.zhb.wms2.module.io.service.IoApplyService;
 import com.zhb.wms2.module.io.service.IoOrderService;
-import com.zhb.wms2.module.outbound.model.entity.OutboundApply;
-import com.zhb.wms2.module.outbound.service.OutboundApplyService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,18 +29,16 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class DeliverymanServiceImpl extends ServiceImpl<DeliverymanMapper, Deliveryman> implements DeliverymanService {
 
-    private final InboundApplyService inboundApplyService;
-    private final OutboundApplyService outboundApplyService;
+    private final IoApplyService ioApplyService;
     private final IoOrderService ioOrderService;
     private final BaseDictMapStore baseDictMapStore;
 
     @Override
-    public boolean save(Deliveryman deliveryman) {
-        boolean saved = super.save(deliveryman);
-        if (saved) {
-            baseDictMapStore.clearDeliverymanMap();
+    public void saveChecked(Deliveryman deliveryman) {
+        if (!super.save(deliveryman)) {
+            throw new BaseException("送货员新增失败");
         }
-        return saved;
+        baseDictMapStore.clearDeliverymanMap();
     }
 
     @Override
@@ -65,13 +62,17 @@ public class DeliverymanServiceImpl extends ServiceImpl<DeliverymanMapper, Deliv
 
     @Override
     public void removeByIdChecked(Long id) {
-        long inboundApplyCount = inboundApplyService.count(
-                new LambdaQueryWrapper<InboundApply>().eq(InboundApply::getDeliverymanId, id));
+        long inboundApplyCount = ioApplyService.count(
+                new LambdaQueryWrapper<IoApply>()
+                        .eq(IoApply::getDeliverymanId, id)
+                        .eq(IoApply::getOrderType, IoBizTypeConstant.INBOUND));
         if (inboundApplyCount > 0) {
             throw new BaseException("该送货员已被入库申请使用，无法删除");
         }
-        long outboundApplyCount = outboundApplyService.count(
-                new LambdaQueryWrapper<OutboundApply>().eq(OutboundApply::getDeliverymanId, id));
+        long outboundApplyCount = ioApplyService.count(
+                new LambdaQueryWrapper<IoApply>()
+                        .eq(IoApply::getDeliverymanId, id)
+                        .eq(IoApply::getOrderType, IoBizTypeConstant.OUTBOUND));
         if (outboundApplyCount > 0) {
             throw new BaseException("该送货员已被出库申请使用，无法删除");
         }

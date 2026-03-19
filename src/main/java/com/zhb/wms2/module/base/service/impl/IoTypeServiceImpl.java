@@ -12,12 +12,10 @@ import com.zhb.wms2.module.base.model.entity.IoType;
 import com.zhb.wms2.module.base.model.query.IoTypeQuery;
 import com.zhb.wms2.module.base.service.IoTypeService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
-import com.zhb.wms2.module.inbound.model.entity.InboundApply;
-import com.zhb.wms2.module.inbound.service.InboundApplyService;
+import com.zhb.wms2.module.io.model.entity.IoApply;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
+import com.zhb.wms2.module.io.service.IoApplyService;
 import com.zhb.wms2.module.io.service.IoOrderService;
-import com.zhb.wms2.module.outbound.model.entity.OutboundApply;
-import com.zhb.wms2.module.outbound.service.OutboundApplyService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,19 +24,17 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> implements IoTypeService {
 
-    private final InboundApplyService inboundApplyService;
-    private final OutboundApplyService outboundApplyService;
+    private final IoApplyService ioApplyService;
     private final IoOrderService ioOrderService;
     private final BaseDictMapStore baseDictMapStore;
 
     @Override
-    public boolean save(IoType ioType) {
+    public void saveChecked(IoType ioType) {
         validateNameUnique(ioType.getName(), ioType.getBizType(), null);
-        boolean saved = super.save(ioType);
-        if (saved) {
-            baseDictMapStore.clearIoTypeMap();
+        if (!super.save(ioType)) {
+            throw new BaseException("出入库类型新增失败");
         }
-        return saved;
+        baseDictMapStore.clearIoTypeMap();
     }
 
     @Override
@@ -70,14 +66,18 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
             throw new BaseException("出入库类型不存在");
         }
         if (IoBizTypeConstant.INBOUND == ioType.getBizType()) {
-            long inboundApplyCount = inboundApplyService.count(
-                    new LambdaQueryWrapper<InboundApply>().eq(InboundApply::getInboundTypeId, id));
+            long inboundApplyCount = ioApplyService.count(
+                    new LambdaQueryWrapper<IoApply>()
+                            .eq(IoApply::getIoTypeId, id)
+                            .eq(IoApply::getOrderType, IoBizTypeConstant.INBOUND));
             if (inboundApplyCount > 0) {
                 throw new BaseException("该出入库类型已被入库申请使用，无法删除");
             }
         } else {
-            long outboundApplyCount = outboundApplyService.count(
-                    new LambdaQueryWrapper<OutboundApply>().eq(OutboundApply::getOutboundTypeId, id));
+            long outboundApplyCount = ioApplyService.count(
+                    new LambdaQueryWrapper<IoApply>()
+                            .eq(IoApply::getIoTypeId, id)
+                            .eq(IoApply::getOrderType, IoBizTypeConstant.OUTBOUND));
             if (outboundApplyCount > 0) {
                 throw new BaseException("该出入库类型已被出库申请使用，无法删除");
             }

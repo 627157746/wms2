@@ -20,7 +20,7 @@ public class ProductCategoryTreeVO {
     @Schema(description = "排序")
     private Integer sortOrder;
 
-    @Schema(description = "层级")
+    @Schema(description = "层级，由系统计算")
     private Integer level;
 
     @Schema(description = "子分类")

@@ -12,9 +12,10 @@ import com.zhb.wms2.module.base.model.entity.ProductCategory;
 import com.zhb.wms2.module.base.model.vo.ProductCategoryTreeVO;
 import com.zhb.wms2.module.base.service.ProductCategoryService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
+import com.zhb.wms2.module.product.mapper.ProductMapper;
 import com.zhb.wms2.module.product.model.entity.Product;
-import com.zhb.wms2.module.product.service.ProductService;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,17 +28,17 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMapper, ProductCategory> implements ProductCategoryService {
 
-    private final ProductService productService;
+    private final ProductMapper productMapper;
     private final BaseDictMapStore baseDictMapStore;
 
     @Override
-    public boolean save(ProductCategory category) {
+    public void saveChecked(ProductCategory category) {
+        prepareCategory(category, null);
         validateNameUnique(category.getName(), null);
-        boolean saved = super.save(category);
-        if (saved) {
-            baseDictMapStore.clearProductCategoryMap();
+        if (!super.save(category)) {
+            throw new BaseException("商品分类新增失败");
         }
-        return saved;
+        baseDictMapStore.clearProductCategoryMap();
     }
 
     @Override
@@ -58,9 +59,11 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
 
     @Override
     public void updateByIdChecked(ProductCategory category) {
-        if (getById(category.getId()) == null) {
+        ProductCategory currentCategory = getById(category.getId());
+        if (currentCategory == null) {
             throw new BaseException("商品分类不存在");
         }
+        prepareCategory(category, currentCategory);
         validateNameUnique(category.getName(), category.getId());
         if (!updateById(category)) {
             throw new BaseException("商品分类不存在");
@@ -74,7 +77,7 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
         if (childCount > 0) {
             throw new BaseException("该分类存在子分类，无法删除");
         }
-        long count = productService.count(new LambdaQueryWrapper<Product>().eq(Product::getCategoryId, id));
+        long count = productMapper.selectCount(new LambdaQueryWrapper<Product>().eq(Product::getCategoryId, id));
         if (count > 0) {
             throw new BaseException("该分类已被商品使用，无法删除");
         }
@@ -96,6 +99,49 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
                 ? CollUtil.newArrayList()
                 : children.stream().map(this::convertTree).toList());
         return treeVO;
+    }
+
+    private void prepareCategory(ProductCategory category, ProductCategory currentCategory) {
+        Long parentId = category.getParentId();
+        if (parentId == null) {
+            parentId = 0L;
+        }
+        if (currentCategory != null && Objects.equals(parentId, currentCategory.getId())) {
+            throw new BaseException("上级分类不能是自己");
+        }
+
+        ProductCategory parentCategory = null;
+        if (parentId > 0) {
+            parentCategory = getById(parentId);
+            if (parentCategory == null) {
+                throw new BaseException("上级分类不存在");
+            }
+            if (currentCategory != null) {
+                validateNoCycle(currentCategory.getId(), parentCategory);
+            }
+        }
+
+        category.setParentId(parentId);
+        // 层级由服务端根据父节点统一计算，不信任前端传入值。
+        category.setLevel(parentCategory == null ? 1 : parentCategory.getLevel() + 1);
+    }
+
+    private void validateNoCycle(Long currentId, ProductCategory parentCategory) {
+        ProductCategory currentParent = parentCategory;
+        // 沿父链向上检查，避免把当前节点挂到自己的子树下面。
+        while (currentParent != null && currentParent.getId() != null && currentParent.getId() > 0) {
+            if (Objects.equals(currentParent.getId(), currentId)) {
+                throw new BaseException("上级分类不能是当前分类或其子分类");
+            }
+            Long nextParentId = currentParent.getParentId();
+            if (nextParentId == null || nextParentId == 0) {
+                return;
+            }
+            currentParent = getById(nextParentId);
+            if (currentParent == null) {
+                throw new BaseException("分类层级数据异常");
+            }
+        }
     }
 
     private void validateNameUnique(String name, Long excludeId) {

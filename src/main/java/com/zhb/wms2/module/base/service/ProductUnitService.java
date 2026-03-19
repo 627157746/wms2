@@ -12,6 +12,8 @@ import java.util.List;
  */
 public interface ProductUnitService extends IService<ProductUnit> {
 
+    void saveChecked(ProductUnit unit);
+
     IPage<ProductUnit> pageQuery(ProductUnitQuery query);
 
     List<ProductUnit> listAll();

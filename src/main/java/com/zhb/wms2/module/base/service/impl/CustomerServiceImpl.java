@@ -12,10 +12,10 @@ import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.query.CustomerQuery;
 import com.zhb.wms2.module.base.service.CustomerService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
+import com.zhb.wms2.module.io.model.entity.IoApply;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
+import com.zhb.wms2.module.io.service.IoApplyService;
 import com.zhb.wms2.module.io.service.IoOrderService;
-import com.zhb.wms2.module.outbound.model.entity.OutboundApply;
-import com.zhb.wms2.module.outbound.service.OutboundApplyService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,17 +29,16 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> implements CustomerService {
 
-    private final OutboundApplyService outboundApplyService;
+    private final IoApplyService ioApplyService;
     private final IoOrderService ioOrderService;
     private final BaseDictMapStore baseDictMapStore;
 
     @Override
-    public boolean save(Customer customer) {
-        boolean saved = super.save(customer);
-        if (saved) {
-            baseDictMapStore.clearCustomerMap();
+    public void saveChecked(Customer customer) {
+        if (!super.save(customer)) {
+            throw new BaseException("客户新增失败");
         }
-        return saved;
+        baseDictMapStore.clearCustomerMap();
     }
 
     @Override
@@ -63,8 +62,10 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> i
 
     @Override
     public void removeByIdChecked(Long id) {
-        long applyCount = outboundApplyService.count(
-                new LambdaQueryWrapper<OutboundApply>().eq(OutboundApply::getCustomerId, id));
+        long applyCount = ioApplyService.count(
+                new LambdaQueryWrapper<IoApply>()
+                        .eq(IoApply::getCustomerId, id)
+                        .eq(IoApply::getOrderType, IoBizTypeConstant.OUTBOUND));
         if (applyCount > 0) {
             throw new BaseException("该客户已被出库申请使用，无法删除");
         }

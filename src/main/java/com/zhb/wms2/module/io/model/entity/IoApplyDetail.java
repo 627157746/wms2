@@ -10,24 +10,20 @@ import java.io.Serializable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-@Schema(description = "出入库记录")
+@Schema(description = "出入库申请明细")
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "io_order_detail")
-public class IoOrderDetail extends BaseModel implements Serializable {
+@TableName(value = "io_apply_detail")
+public class IoApplyDetail extends BaseModel implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @TableId(value = "id", type = IdType.AUTO)
     @Schema(description = "主键ID")
     private Long id;
 
-    @TableField(value = "order_id")
-    @Schema(description = "出入库单ID")
-    private Long orderId;
-
-    @TableField(value = "order_type")
-    @Schema(description = "单据类型：1-入库 2-出库")
-    private Integer orderType;
+    @TableField(value = "apply_id")
+    @Schema(description = "出入库申请ID")
+    private Long applyId;
 
     @TableField(value = "product_id")
     @Schema(description = "商品ID")
@@ -36,12 +32,4 @@ public class IoOrderDetail extends BaseModel implements Serializable {
     @TableField(value = "qty")
     @Schema(description = "数量")
     private Long qty;
-
-    @TableField(value = "location_id")
-    @Schema(description = "货位ID")
-    private Long locationId;
-
-    @TableField(value = "picked_qty")
-    @Schema(description = "已拣数量，仅出库使用")
-    private Long pickedQty;
 }

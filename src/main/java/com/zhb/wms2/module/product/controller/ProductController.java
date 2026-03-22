@@ -6,6 +6,7 @@ import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
 import com.zhb.wms2.module.product.model.entity.Product;
 import com.zhb.wms2.module.product.model.query.ProductQuery;
+import com.zhb.wms2.module.product.model.vo.ProductPageVO;
 import com.zhb.wms2.module.product.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -45,10 +46,18 @@ public class ProductController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询商品")
-    public R<IPage<? extends Product>> page(
+    public R<IPage<ProductPageVO>> page(
             @Parameter(description = "查询条件")
             @Validated ProductQuery query) {
         return R.ok(productService.pageQuery(query));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "查询商品详情")
+    public R<ProductPageVO> getById(
+            @Parameter(description = "商品ID", required = true)
+            @PathVariable @NotNull @Min(1) Long id) {
+        return R.ok(productService.getDetailById(id));
     }
 
     @DeleteMapping("/{id}")

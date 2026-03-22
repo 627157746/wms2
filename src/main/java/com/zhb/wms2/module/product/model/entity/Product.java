@@ -55,6 +55,13 @@ public class Product extends BaseModel implements Serializable {
     private String code;
 
     /**
+     * 条形码
+     */
+    @TableField(value = "barcode")
+    @Schema(description="条形码")
+    private String barcode;
+
+    /**
      * 单位ID
      */
     @TableField(value = "unit_id")
@@ -68,6 +75,7 @@ public class Product extends BaseModel implements Serializable {
      */
     @TableField(value = "category_id")
     @Schema(description="分类ID")
+    @NotNull(message = "商品分类不能为空")
     @Min(value = 1, message = "商品分类不正确")
     private Long categoryId;
 

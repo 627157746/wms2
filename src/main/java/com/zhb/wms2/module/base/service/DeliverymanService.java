@@ -17,7 +17,7 @@ public interface DeliverymanService extends IService<Deliveryman> {
 
     IPage<Deliveryman> pageQuery(DeliverymanQuery query);
 
-    List<Deliveryman> listAll();
+    List<Deliveryman> listAllByScope(Integer scope);
 
     void updateByIdChecked(Deliveryman deliveryman);
 

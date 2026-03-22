@@ -4,6 +4,9 @@ import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.List;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -29,4 +32,7 @@ public class IoOrderPageVO extends IoOrder {
 
     @Schema(description = "拣货状态名称")
     private String pickingStatusName;
+
+    @Schema(description = "出入库单明细列表")
+    private List<IoOrderDetailVO> detailList;
 }

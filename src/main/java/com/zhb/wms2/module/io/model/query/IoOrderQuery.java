@@ -34,4 +34,7 @@ public class IoOrderQuery extends BaseQuery {
 
     @Schema(description = "来源申请ID")
     private Long applyId;
+
+    @Schema(description = "拣货状态：0-未拣 1-已拣")
+    private Integer pickingStatus;
 }

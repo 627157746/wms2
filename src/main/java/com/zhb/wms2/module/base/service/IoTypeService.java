@@ -12,7 +12,7 @@ public interface IoTypeService extends IService<IoType> {
 
     IPage<IoType> pageQuery(IoTypeQuery query);
 
-    List<IoType> listAll();
+    List<IoType> listAllByScope(Integer scope);
 
     void updateByIdChecked(IoType ioType);
 

@@ -16,6 +16,9 @@ public class ProductQuery extends BaseQuery {
     @Schema(description = "商品编号")
     private String code;
 
+    @Schema(description = "条形码")
+    private String barcode;
+
     @Schema(description = "商品分类ID")
     private Long categoryId;
 

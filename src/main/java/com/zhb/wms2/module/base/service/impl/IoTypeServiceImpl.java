@@ -5,7 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zhb.wms2.common.constant.IoBizTypeConstant;
+import com.zhb.wms2.common.enums.IoBizTypeEnum;
+import com.zhb.wms2.common.enums.ScopeEnum;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.mapper.IoTypeMapper;
 import com.zhb.wms2.module.base.model.entity.IoType;
@@ -16,9 +17,10 @@ import com.zhb.wms2.module.io.model.entity.IoApply;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
 import com.zhb.wms2.module.io.service.IoApplyService;
 import com.zhb.wms2.module.io.service.IoOrderService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +32,7 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
 
     @Override
     public void saveChecked(IoType ioType) {
-        validateNameUnique(ioType.getName(), ioType.getBizType(), null);
+        validateNameUnique(ioType.getName(), ioType.getScope(), null);
         if (!super.save(ioType)) {
             throw new BaseException("出入库类型新增失败");
         }
@@ -43,8 +45,10 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
     }
 
     @Override
-    public List<IoType> listAll() {
-        return list(new LambdaQueryWrapper<IoType>().orderByDesc(IoType::getId));
+    public List<IoType> listAllByScope(Integer scope) {
+        LambdaQueryWrapper<IoType> wrapper = new LambdaQueryWrapper<IoType>()
+                .orderByDesc(IoType::getId);
+        return list(wrapper.and(w -> w.in(IoType::getScope, ScopeEnum.COMMON.getCode(), scope)));
     }
 
     @Override
@@ -52,7 +56,7 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
         if (getById(ioType.getId()) == null) {
             throw new BaseException("出入库类型不存在");
         }
-        validateNameUnique(ioType.getName(), ioType.getBizType(), ioType.getId());
+        validateNameUnique(ioType.getName(), ioType.getScope(), ioType.getId());
         if (!updateById(ioType)) {
             throw new BaseException("出入库类型不存在");
         }
@@ -65,11 +69,11 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
         if (ioType == null) {
             throw new BaseException("出入库类型不存在");
         }
-        if (IoBizTypeConstant.INBOUND == ioType.getBizType()) {
+        if (IoBizTypeEnum.INBOUND.matches(ioType.getScope())) {
             long inboundApplyCount = ioApplyService.count(
                     new LambdaQueryWrapper<IoApply>()
                             .eq(IoApply::getIoTypeId, id)
-                            .eq(IoApply::getOrderType, IoBizTypeConstant.INBOUND));
+                            .eq(IoApply::getOrderType, IoBizTypeEnum.INBOUND.getCode()));
             if (inboundApplyCount > 0) {
                 throw new BaseException("该出入库类型已被入库申请使用，无法删除");
             }
@@ -77,7 +81,7 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
             long outboundApplyCount = ioApplyService.count(
                     new LambdaQueryWrapper<IoApply>()
                             .eq(IoApply::getIoTypeId, id)
-                            .eq(IoApply::getOrderType, IoBizTypeConstant.OUTBOUND));
+                            .eq(IoApply::getOrderType, IoBizTypeEnum.OUTBOUND.getCode()));
             if (outboundApplyCount > 0) {
                 throw new BaseException("该出入库类型已被出库申请使用，无法删除");
             }
@@ -96,17 +100,17 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
     private LambdaQueryWrapper<IoType> buildWrapper(IoTypeQuery query) {
         return new LambdaQueryWrapper<IoType>()
                 .like(StrUtil.isNotBlank(query.getName()), IoType::getName, query.getName())
-                .eq(query.getBizType() != null, IoType::getBizType, query.getBizType())
+                .eq(query.getScope() != null, IoType::getScope, query.getScope())
                 .orderByDesc(IoType::getId);
     }
 
-    private void validateNameUnique(String name, Integer bizType, Long excludeId) {
+    private void validateNameUnique(String name, Integer scope, Long excludeId) {
         LambdaQueryWrapper<IoType> wrapper = new LambdaQueryWrapper<IoType>()
                 .eq(IoType::getName, name)
-                .eq(IoType::getBizType, bizType)
+                .eq(IoType::getScope, scope)
                 .ne(excludeId != null, IoType::getId, excludeId);
         if (count(wrapper) > 0) {
-            throw new BaseException("同业务类型下名称已存在");
+            throw new BaseException("同适用范围下名称已存在");
         }
     }
 }

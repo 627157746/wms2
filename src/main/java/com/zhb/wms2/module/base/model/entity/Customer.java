@@ -7,8 +7,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.zhb.wms2.common.model.BaseModel;
 import com.zhb.wms2.common.validated.Update;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -75,16 +73,6 @@ public class Customer extends BaseModel implements Serializable {
     @TableField(value = "address")
     @Schema(description = "地址")
     private String address;
-
-    /**
-     * 适用范围：0-不限 1-出库 2-入库
-     */
-    @TableField(value = "`scope`")
-    @Schema(description = "适用范围：0-不限 1-出库 2-入库")
-    @NotNull(message = "适用范围不能为空")
-    @Min(value = 0, message = "适用范围不正确")
-    @Max(value = 2, message = "适用范围不正确")
-    private Integer scope;
 
     /**
      * 备注

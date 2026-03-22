@@ -9,10 +9,13 @@ import com.zhb.wms2.module.io.model.dto.IoOrderGenerateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderUpdateDTO;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
 import com.zhb.wms2.module.io.model.query.IoOrderQuery;
+import com.zhb.wms2.module.io.model.vo.IoOrderPageVO;
 
 public interface IoOrderService extends IService<IoOrder> {
 
-    IPage<? extends IoOrder> pageQuery(IoOrderQuery query);
+    IPage<IoOrderPageVO> pageQuery(IoOrderQuery query);
+
+    IoOrderPageVO getDetailById(Long id);
 
     IPage<InventoryIoDetailVO> pageDetailByProductId(InventoryIoDetailQuery query);
 
@@ -21,6 +24,8 @@ public interface IoOrderService extends IService<IoOrder> {
     Long saveOrder(IoOrderCreateDTO dto);
 
     void updateOrder(IoOrderUpdateDTO dto);
+
+    void pickById(Long id);
 
     void removeByIdChecked(Long id);
 }

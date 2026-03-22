@@ -76,10 +76,10 @@ public class Deliveryman extends BaseModel implements Serializable {
     private String address;
 
     /**
-     * 适用范围：0-不限 1-出库 2-入库
+     * 适用范围：0-不限 1-入库 2-出库
      */
     @TableField(value = "`scope`")
-    @Schema(description="适用范围：0-不限 1-出库 2-入库")
+    @Schema(description="适用范围：0-不限 1-入库 2-出库")
     @NotNull(message = "适用范围不能为空")
     @Min(value = 0, message = "适用范围不正确")
     @Max(value = 2, message = "适用范围不正确")

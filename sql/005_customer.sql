@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS customer (
   tel VARCHAR(30) NULL COMMENT '座机',
   wechat VARCHAR(50) NULL COMMENT '微信号',
   address VARCHAR(255) NULL COMMENT '地址',
-  scope TINYINT NOT NULL DEFAULT 0 COMMENT '适用范围：0-不限 1-出库 2-入库',
   remark VARCHAR(255) NULL COMMENT '备注',
   create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -16,4 +15,3 @@ CREATE TABLE IF NOT EXISTS customer (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客户';
 
 CREATE INDEX idx_customer_name ON customer(name);
-CREATE INDEX idx_customer_scope ON customer(scope);

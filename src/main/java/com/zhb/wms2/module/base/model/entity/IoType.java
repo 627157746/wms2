@@ -32,10 +32,10 @@ public class IoType extends BaseModel implements Serializable {
     @NotBlank(message = "类型名称不能为空")
     private String name;
 
-    @TableField(value = "biz_type")
-    @Schema(description = "业务类型：1-入库 2-出库")
-    @NotNull(message = "业务类型不能为空")
-    @Min(value = 1, message = "业务类型不正确")
-    @Max(value = 2, message = "业务类型不正确")
-    private Integer bizType;
+    @TableField(value = "`scope`")
+    @Schema(description = "适用范围：0-不限 1-入库 2-出库")
+    @NotNull(message = "适用范围不能为空")
+    @Min(value = 0, message = "适用范围不正确")
+    @Max(value = 2, message = "适用范围不正确")
+    private Integer scope;
 }

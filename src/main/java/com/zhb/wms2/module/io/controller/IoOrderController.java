@@ -6,8 +6,8 @@ import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
 import com.zhb.wms2.module.io.model.dto.IoOrderCreateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderUpdateDTO;
-import com.zhb.wms2.module.io.model.entity.IoOrder;
 import com.zhb.wms2.module.io.model.query.IoOrderQuery;
+import com.zhb.wms2.module.io.model.vo.IoOrderPageVO;
 import com.zhb.wms2.module.io.service.IoOrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,14 +16,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/io/order")
@@ -36,10 +29,18 @@ public class IoOrderController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询出入库单")
-    public R<IPage<? extends IoOrder>> page(
+    public R<IPage<IoOrderPageVO>> page(
             @Parameter(description = "查询条件")
             @Validated IoOrderQuery query) {
         return R.ok(ioOrderService.pageQuery(query));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "查询出入库单详情")
+    public R<IoOrderPageVO> getById(
+            @Parameter(description = "出入库单ID", required = true)
+            @PathVariable @NotNull @Min(1) Long id) {
+        return R.ok(ioOrderService.getDetailById(id));
     }
 
     @PostMapping
@@ -56,6 +57,15 @@ public class IoOrderController {
             @Parameter(description = "出入库单", required = true)
             @RequestBody @Validated({Save.class, Update.class}) IoOrderUpdateDTO dto) {
         ioOrderService.updateOrder(dto);
+        return R.optOk();
+    }
+
+    @PutMapping("/{id}/pick")
+    @Operation(summary = "出库单拣货")
+    public R<Void> pick(
+            @Parameter(description = "出入库单ID", required = true)
+            @PathVariable @NotNull @Min(1) Long id) {
+        ioOrderService.pickById(id);
         return R.optOk();
     }
 

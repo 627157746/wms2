@@ -4,6 +4,9 @@ import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
 import com.zhb.wms2.module.io.model.entity.IoApply;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.List;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -29,4 +32,7 @@ public class IoApplyPageVO extends IoApply {
 
     @Schema(description = "出入库状态名称")
     private String ioStatusName;
+
+    @Schema(description = "申请明细列表")
+    private List<IoApplyDetailVO> detailList;
 }

@@ -10,12 +10,14 @@ import com.zhb.wms2.module.base.service.IoTypeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/base/ioType")
@@ -61,9 +63,11 @@ public class IoTypeController {
     }
 
     @GetMapping("/all")
-    @Operation(summary = "查询全部出入库类型")
-    public R<List<IoType>> all() {
-        return R.ok(ioTypeService.listAll());
+    @Operation(summary = "根据适用范围查询出入库类型")
+    public R<List<IoType>> all(
+            @Parameter(description = "1-入库 2-出库", required = true)
+            @RequestParam @NotNull @Min(1) @Max(2) Integer scope) {
+        return R.ok(ioTypeService.listAllByScope(scope));
     }
 
     @DeleteMapping("/{id}")

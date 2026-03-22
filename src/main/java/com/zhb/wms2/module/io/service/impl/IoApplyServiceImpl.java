@@ -5,7 +5,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zhb.wms2.common.constant.IoBizTypeConstant;
+import com.zhb.wms2.common.enums.ApproveStatusEnum;
+import com.zhb.wms2.common.enums.IoBizTypeEnum;
+import com.zhb.wms2.common.enums.IoStatusEnum;
+import com.zhb.wms2.common.enums.ScopeEnum;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.model.dto.BaseDictMapDTO;
 import com.zhb.wms2.module.base.model.entity.Customer;
@@ -20,47 +23,43 @@ import com.zhb.wms2.module.io.model.dto.IoApplyUpdateDTO;
 import com.zhb.wms2.module.io.model.entity.IoApply;
 import com.zhb.wms2.module.io.model.entity.IoApplyDetail;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
+import com.zhb.wms2.module.io.model.vo.IoApplyDetailVO;
 import com.zhb.wms2.module.io.model.query.IoApplyQuery;
 import com.zhb.wms2.module.io.model.vo.IoApplyPageVO;
 import com.zhb.wms2.module.io.service.IoApplyDetailService;
 import com.zhb.wms2.module.io.service.IoApplyService;
 import com.zhb.wms2.module.product.mapper.ProductMapper;
 import com.zhb.wms2.module.product.model.entity.Product;
-import java.time.LocalDateTime;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.zhb.wms2.module.product.model.vo.ProductPageVO;
+import com.zhb.wms2.module.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> implements IoApplyService {
 
-    private static final int CUSTOMER_SCOPE_OUTBOUND = 1;
-    private static final int DELIVERYMAN_SCOPE_OUTBOUND = 1;
-    private static final int DELIVERYMAN_SCOPE_INBOUND = 2;
-    private static final int COMMON_SCOPE = 0;
     private static final String INBOUND_APPLY_PREFIX = "RS";
     private static final String OUTBOUND_APPLY_PREFIX = "CS";
     private static final int APPLY_NO_DIGIT_LENGTH = 6;
 
     private final IoOrderMapper ioOrderMapper;
     private final ProductMapper productMapper;
+    private final ProductService productService;
     private final BaseDictMapService baseDictMapService;
     private final IoApplyDetailService ioApplyDetailService;
 
     @Override
-    public IPage<? extends IoApply> pageQuery(IoApplyQuery query) {
+    public IPage<IoApplyPageVO> pageQuery(IoApplyQuery query) {
         IPage<IoApply> page = page(new Page<>(query.getCurrent(), query.getSize()), buildWrapper(query));
         List<IoApply> recordList = page.getRecords();
         if (recordList.isEmpty()) {
-            page.setRecords(List.of());
-            return page;
+            return new Page<>(query.getCurrent(), query.getSize());
         }
 
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
@@ -70,7 +69,27 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 ? Map.of() : dictMap.getCustomerMap();
         Map<Long, IoType> ioTypeMap = dictMap.getIoTypeMap() == null
                 ? Map.of() : dictMap.getIoTypeMap();
-        return page.convert(ioApply -> buildPageVO(ioApply, deliverymanMap, customerMap, ioTypeMap));
+        Map<Long, List<IoApplyDetailVO>> detailMap = buildDetailMap(recordList.stream().map(IoApply::getId).toList());
+        return page.convert(ioApply -> buildPageVO(ioApply, deliverymanMap, customerMap, ioTypeMap,
+                detailMap.get(ioApply.getId())));
+    }
+
+    @Override
+    public IoApplyPageVO getDetailById(Long id) {
+        IoApply ioApply = getById(id);
+        if (ioApply == null) {
+            throw new BaseException("出入库申请不存在");
+        }
+
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Map<Long, Deliveryman> deliverymanMap = dictMap.getDeliverymanMap() == null
+                ? Map.of() : dictMap.getDeliverymanMap();
+        Map<Long, Customer> customerMap = dictMap.getCustomerMap() == null
+                ? Map.of() : dictMap.getCustomerMap();
+        Map<Long, IoType> ioTypeMap = dictMap.getIoTypeMap() == null
+                ? Map.of() : dictMap.getIoTypeMap();
+        Map<Long, List<IoApplyDetailVO>> detailMap = buildDetailMap(List.of(id));
+        return buildPageVO(ioApply, deliverymanMap, customerMap, ioTypeMap, detailMap.get(id));
     }
 
     @Override
@@ -84,11 +103,11 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         ioApply.setApplyDate(dto.getApplyDate());
         ioApply.setDeliverymanId(dto.getDeliverymanId());
         ioApply.setCustomerId(
-                Objects.equals(dto.getOrderType(), IoBizTypeConstant.OUTBOUND) ? dto.getCustomerId() : null);
+                IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getCustomerId() : null);
         ioApply.setIoTypeId(dto.getIoTypeId());
         ioApply.setRemark(dto.getRemark());
-        ioApply.setApproveStatus(0);
-        ioApply.setIoStatus(0);
+        ioApply.setApproveStatus(ApproveStatusEnum.UNAPPROVED.getCode());
+        ioApply.setIoStatus(IoStatusEnum.PENDING.getCode());
         ioApply.setApprovedTime(null);
         if (!save(ioApply)) {
             throw new BaseException("出入库申请新增失败");
@@ -115,7 +134,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         ioApply.setApplyDate(dto.getApplyDate());
         ioApply.setDeliverymanId(dto.getDeliverymanId());
         ioApply.setCustomerId(
-                Objects.equals(dto.getOrderType(), IoBizTypeConstant.OUTBOUND) ? dto.getCustomerId() : null);
+                IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getCustomerId() : null);
         ioApply.setIoTypeId(dto.getIoTypeId());
         ioApply.setRemark(dto.getRemark());
         if (!updateById(ioApply)) {
@@ -133,9 +152,9 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
             throw new BaseException("出入库申请不存在");
         }
         if (isApproved(ioApply)) {
-            throw new BaseException(buildApplyBizLabel(ioApply.getOrderType()) + "申请已审批，请勿重复审批");
+            throw new BaseException(buildBizLabel(ioApply.getOrderType()) + "申请已审批，请勿重复审批");
         }
-        ioApply.setApproveStatus(1);
+        ioApply.setApproveStatus(ApproveStatusEnum.APPROVED.getCode());
         ioApply.setApprovedTime(LocalDateTime.now());
         if (!updateById(ioApply)) {
             throw new BaseException("出入库申请不存在");
@@ -149,10 +168,10 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
             throw new BaseException("出入库申请不存在");
         }
         if (!isApproved(ioApply)) {
-            throw new BaseException(buildApplyBizLabel(ioApply.getOrderType()) + "申请未审批，无需取消审批");
+            throw new BaseException(buildBizLabel(ioApply.getOrderType()) + "申请未审批，无需取消审批");
         }
         validateApplyCanCancelApprove(ioApply);
-        ioApply.setApproveStatus(0);
+        ioApply.setApproveStatus(ApproveStatusEnum.UNAPPROVED.getCode());
         ioApply.setApprovedTime(null);
         if (!updateById(ioApply)) {
             throw new BaseException("出入库申请不存在");
@@ -176,7 +195,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
     private void validateBizData(IoApplyCreateDTO dto) {
         validateDeliveryman(dto.getDeliverymanId(), dto.getOrderType());
         validateIoType(dto.getIoTypeId(), dto.getOrderType());
-        if (Objects.equals(dto.getOrderType(), IoBizTypeConstant.OUTBOUND)) {
+        if (IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType())) {
             if (dto.getCustomerId() == null) {
                 throw new BaseException("出库申请客户不能为空");
             }
@@ -193,11 +212,10 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         if (deliveryman == null) {
             throw new BaseException("送货员不存在");
         }
-        Integer expectedScope = Objects.equals(orderType, IoBizTypeConstant.INBOUND)
-                ? DELIVERYMAN_SCOPE_INBOUND
-                : DELIVERYMAN_SCOPE_OUTBOUND;
-        if (!Objects.equals(deliveryman.getScope(), COMMON_SCOPE)
-                && !Objects.equals(deliveryman.getScope(), expectedScope)) {
+        Integer expectedScope = IoBizTypeEnum.INBOUND.matches(orderType)
+                ? ScopeEnum.INBOUND.getCode()
+                : ScopeEnum.OUTBOUND.getCode();
+        if (!ScopeEnum.supportsBizType(deliveryman.getScope(), expectedScope)) {
             throw new BaseException("送货员不适用于当前单据类型");
         }
     }
@@ -210,10 +228,6 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         if (customer == null) {
             throw new BaseException("客户不存在");
         }
-        if (!Objects.equals(customer.getScope(), COMMON_SCOPE)
-                && !Objects.equals(customer.getScope(), CUSTOMER_SCOPE_OUTBOUND)) {
-            throw new BaseException("客户不适用于出库申请");
-        }
     }
 
     private void validateIoType(Long ioTypeId, Integer orderType) {
@@ -224,7 +238,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         if (ioType == null) {
             throw new BaseException("出入库类型不存在");
         }
-        if (!Objects.equals(ioType.getBizType(), orderType)) {
+        if (!ScopeEnum.supportsBizType(ioType.getScope(), orderType)) {
             throw new BaseException("出入库类型与单据类型不匹配");
         }
     }
@@ -258,7 +272,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
     }
 
     private String generateApplyNo(Integer orderType) {
-        String prefix = Objects.equals(orderType, IoBizTypeConstant.INBOUND)
+        String prefix = IoBizTypeEnum.INBOUND.matches(orderType)
                 ? INBOUND_APPLY_PREFIX
                 : OUTBOUND_APPLY_PREFIX;
         IoApply lastApply = getOne(new LambdaQueryWrapper<IoApply>()
@@ -287,13 +301,13 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
 
     private void validateApplyCanUpdate(IoApply ioApply) {
         if (isApproved(ioApply)) {
-            throw new BaseException(buildApplyBizLabel(ioApply.getOrderType()) + "申请已审批，无法修改");
+            throw new BaseException(buildBizLabel(ioApply.getOrderType()) + "申请已审批，无法修改");
         }
     }
 
     private void validateApplyCanDelete(IoApply ioApply) {
         if (isApproved(ioApply)) {
-            throw new BaseException(buildApplyBizLabel(ioApply.getOrderType()) + "申请已审批，无法删除");
+            throw new BaseException(buildBizLabel(ioApply.getOrderType()) + "申请已审批，无法删除");
         }
     }
 
@@ -301,14 +315,13 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         long ioOrderCount = ioOrderMapper.selectCount(
                 new LambdaQueryWrapper<IoOrder>().eq(IoOrder::getApplyId, ioApply.getId()));
         if (ioOrderCount > 0) {
-            throw new BaseException(buildApplyBizLabel(ioApply.getOrderType()) + "申请已生成"
-                    + buildOrderBizLabel(ioApply.getOrderType()) + "单，请先删除"
-                    + buildOrderBizLabel(ioApply.getOrderType()) + "单后再取消审批");
+            String bizLabel = buildBizLabel(ioApply.getOrderType());
+            throw new BaseException(bizLabel + "申请已生成" + bizLabel + "单，请先删除" + bizLabel + "单后再取消审批");
         }
     }
 
     private boolean isApproved(IoApply ioApply) {
-        return Objects.equals(ioApply.getApproveStatus(), 1);
+        return ApproveStatusEnum.APPROVED.matches(ioApply.getApproveStatus());
     }
 
     private LambdaQueryWrapper<IoApply> buildWrapper(IoApplyQuery query) {
@@ -325,8 +338,47 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 .orderByDesc(IoApply::getId);
     }
 
+    private Map<Long, List<IoApplyDetailVO>> buildDetailMap(List<Long> applyIds) {
+        if (applyIds == null || applyIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<IoApplyDetail> detailList = ioApplyDetailService.list(new LambdaQueryWrapper<IoApplyDetail>()
+                .in(IoApplyDetail::getApplyId, applyIds)
+                .orderByAsc(IoApplyDetail::getId));
+        if (detailList.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Set<Long> productIds = detailList.stream()
+                .map(IoApplyDetail::getProductId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Map<Long, ProductPageVO> productMap = productIds.isEmpty()
+                ? Collections.emptyMap()
+                : productService.getDetailMapByIds(productIds);
+
+        return detailList.stream()
+                .map(detail -> buildDetailVO(detail, productMap.get(detail.getProductId())))
+                .collect(Collectors.groupingBy(IoApplyDetailVO::getApplyId, LinkedHashMap::new, Collectors.toList()));
+    }
+
+    private IoApplyDetailVO buildDetailVO(IoApplyDetail detail, ProductPageVO product) {
+        IoApplyDetailVO vo = new IoApplyDetailVO();
+        vo.setId(detail.getId());
+        vo.setApplyId(detail.getApplyId());
+        vo.setProductId(detail.getProductId());
+        vo.setQty(detail.getQty());
+        vo.setCreateTime(detail.getCreateTime());
+        vo.setUpdateTime(detail.getUpdateTime());
+        vo.setCreateBy(detail.getCreateBy());
+        vo.setUpdateBy(detail.getUpdateBy());
+        vo.setProduct(product);
+        return vo;
+    }
+
     private IoApplyPageVO buildPageVO(IoApply ioApply, Map<Long, Deliveryman> deliverymanMap,
-                                      Map<Long, Customer> customerMap, Map<Long, IoType> ioTypeMap) {
+                                      Map<Long, Customer> customerMap, Map<Long, IoType> ioTypeMap,
+                                      List<IoApplyDetailVO> detailList) {
         IoApplyPageVO vo = new IoApplyPageVO();
         vo.setId(ioApply.getId());
         vo.setApplyNo(ioApply.getApplyNo());
@@ -343,28 +395,25 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         vo.setUpdateTime(ioApply.getUpdateTime());
         vo.setCreateBy(ioApply.getCreateBy());
         vo.setUpdateBy(ioApply.getUpdateBy());
-        vo.setOrderTypeName(buildOrderTypeName(ioApply.getOrderType()));
+        vo.setOrderTypeName(buildBizLabel(ioApply.getOrderType()));
         Deliveryman deliveryman = deliverymanMap.get(ioApply.getDeliverymanId());
         vo.setDeliveryman(deliveryman);
         Customer customer = customerMap.get(ioApply.getCustomerId());
         vo.setCustomer(customer);
         IoType ioType = ioTypeMap.get(ioApply.getIoTypeId());
         vo.setIoTypeName(ioType == null ? null : ioType.getName());
-        vo.setApproveStatusName(Objects.equals(ioApply.getApproveStatus(), 1) ? "已审批" : "未审批");
-        vo.setIoStatusName(Objects.equals(ioApply.getIoStatus(), 1) ? "已执行" : "未执行");
+        vo.setApproveStatusName(ApproveStatusEnum.getDesc(ioApply.getApproveStatus()));
+        vo.setIoStatusName(buildIoStatusName(ioApply.getOrderType(), ioApply.getIoStatus()));
+        vo.setDetailList(detailList == null ? List.of() : detailList);
         return vo;
     }
 
-    private String buildApplyBizLabel(Integer orderType) {
-        return Objects.equals(orderType, IoBizTypeConstant.INBOUND) ? "入库" : "出库";
+    private String buildBizLabel(Integer orderType) {
+        return IoBizTypeEnum.getDesc(orderType);
     }
 
-    private String buildOrderBizLabel(Integer orderType) {
-        return Objects.equals(orderType, IoBizTypeConstant.INBOUND) ? "入库" : "出库";
-    }
-
-    private String buildOrderTypeName(Integer orderType) {
-        return Objects.equals(orderType, IoBizTypeConstant.INBOUND) ? "入库" : "出库";
+    private String buildIoStatusName(Integer orderType, Integer ioStatus) {
+        return IoStatusEnum.getApplyDesc(ioStatus, orderType);
     }
 
 }

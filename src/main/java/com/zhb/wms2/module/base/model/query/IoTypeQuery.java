@@ -14,8 +14,8 @@ public class IoTypeQuery extends BaseQuery {
     @Schema(description = "类型名称")
     private String name;
 
-    @Schema(description = "业务类型：1-入库 2-出库")
-    @Min(value = 1, message = "业务类型不正确")
-    @Max(value = 2, message = "业务类型不正确")
-    private Integer bizType;
+    @Schema(description = "适用范围：0-不限 1-入库 2-出库")
+    @Min(value = 0, message = "适用范围不正确")
+    @Max(value = 2, message = "适用范围不正确")
+    private Integer scope;
 }

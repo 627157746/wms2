@@ -64,19 +64,17 @@ public class InventoryDetailServiceImpl extends ServiceImpl<InventoryDetailMappe
             vo.setUpdateTime(detail.getUpdateTime());
             vo.setCreateBy(detail.getCreateBy());
             vo.setUpdateBy(detail.getUpdateBy());
-            vo.setLocation(buildLocation(detail.getLocationId(), locationMap));
+            vo.setLocationCode(buildLocationCode(detail.getLocationId(), locationMap));
             return vo;
         }).toList();
     }
 
-    private ProductLocation buildLocation(Long locationId, Map<Long, ProductLocation> locationMap) {
+    private String buildLocationCode(Long locationId, Map<Long, ProductLocation> locationMap) {
         if (Objects.equals(locationId, NO_LOCATION_ID)) {
-            ProductLocation location = new ProductLocation();
-            location.setId(NO_LOCATION_ID);
-            location.setCode(NO_LOCATION_CODE);
-            return location;
+            return NO_LOCATION_CODE;
         }
-        return locationMap.get(locationId);
+        ProductLocation location = locationMap.get(locationId);
+        return location == null ? null : location.getCode();
     }
 
 }

@@ -2,8 +2,6 @@ package com.zhb.wms2.module.base.model.query;
 
 import com.zhb.wms2.common.model.BaseQuery;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -16,9 +14,4 @@ public class CustomerQuery extends BaseQuery {
 
     @Schema(description = "手机")
     private String phone;
-
-    @Schema(description = "适用范围：0-不限 1-出库 2-入库")
-    @Min(value = 0, message = "适用范围不正确")
-    @Max(value = 2, message = "适用范围不正确")
-    private Integer scope;
 }

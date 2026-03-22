@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zhb.wms2.common.constant.IoBizTypeConstant;
+import com.zhb.wms2.common.enums.IoBizTypeEnum;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.mapper.CustomerMapper;
 import com.zhb.wms2.module.base.model.entity.Customer;
@@ -65,14 +65,14 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> i
         long applyCount = ioApplyService.count(
                 new LambdaQueryWrapper<IoApply>()
                         .eq(IoApply::getCustomerId, id)
-                        .eq(IoApply::getOrderType, IoBizTypeConstant.OUTBOUND));
+                        .eq(IoApply::getOrderType, IoBizTypeEnum.OUTBOUND.getCode()));
         if (applyCount > 0) {
             throw new BaseException("该客户已被出库申请使用，无法删除");
         }
         long orderCount = ioOrderService.count(
                 new LambdaQueryWrapper<IoOrder>()
                         .eq(IoOrder::getCustomerId, id)
-                        .eq(IoOrder::getOrderType, IoBizTypeConstant.OUTBOUND));
+                        .eq(IoOrder::getOrderType, IoBizTypeEnum.OUTBOUND.getCode()));
         if (orderCount > 0) {
             throw new BaseException("该客户已被出库单使用，无法删除");
         }
@@ -86,7 +86,6 @@ public class CustomerServiceImpl extends ServiceImpl<CustomerMapper, Customer> i
         return new LambdaQueryWrapper<Customer>()
                 .like(StrUtil.isNotBlank(query.getName()), Customer::getName, query.getName())
                 .like(StrUtil.isNotBlank(query.getPhone()), Customer::getPhone, query.getPhone())
-                .eq(query.getScope() != null, Customer::getScope, query.getScope())
                 .orderByDesc(Customer::getId);
     }
 }

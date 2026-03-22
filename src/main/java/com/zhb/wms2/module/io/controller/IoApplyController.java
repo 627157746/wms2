@@ -8,7 +8,7 @@ import com.zhb.wms2.module.io.model.dto.IoApplyCreateDTO;
 import com.zhb.wms2.module.io.model.dto.IoApplyUpdateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderGenerateDTO;
 import com.zhb.wms2.module.io.model.query.IoApplyQuery;
-import com.zhb.wms2.module.io.model.entity.IoApply;
+import com.zhb.wms2.module.io.model.vo.IoApplyPageVO;
 import com.zhb.wms2.module.io.service.IoApplyService;
 import com.zhb.wms2.module.io.service.IoOrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,14 +18,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/io/apply")
@@ -57,10 +50,18 @@ public class IoApplyController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询出入库申请")
-    public R<IPage<? extends IoApply>> page(
+    public R<IPage<IoApplyPageVO>> page(
             @Parameter(description = "查询条件")
             @Validated IoApplyQuery query) {
         return R.ok(ioApplyService.pageQuery(query));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "查询出入库申请详情")
+    public R<IoApplyPageVO> getById(
+            @Parameter(description = "出入库申请ID", required = true)
+            @PathVariable @NotNull @Min(1) Long id) {
+        return R.ok(ioApplyService.getDetailById(id));
     }
 
     @PutMapping

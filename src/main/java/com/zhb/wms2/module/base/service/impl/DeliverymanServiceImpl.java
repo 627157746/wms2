@@ -5,7 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zhb.wms2.common.constant.IoBizTypeConstant;
+import com.zhb.wms2.common.enums.IoBizTypeEnum;
+import com.zhb.wms2.common.enums.ScopeEnum;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.mapper.DeliverymanMapper;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
@@ -16,9 +17,10 @@ import com.zhb.wms2.module.io.model.entity.IoApply;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
 import com.zhb.wms2.module.io.service.IoApplyService;
 import com.zhb.wms2.module.io.service.IoOrderService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * @Author zhb
@@ -48,8 +50,10 @@ public class DeliverymanServiceImpl extends ServiceImpl<DeliverymanMapper, Deliv
     }
 
     @Override
-    public List<Deliveryman> listAll() {
-        return list(new LambdaQueryWrapper<Deliveryman>().orderByDesc(Deliveryman::getId));
+    public List<Deliveryman> listAllByScope(Integer scope) {
+        LambdaQueryWrapper<Deliveryman> wrapper = new LambdaQueryWrapper<Deliveryman>()
+                .orderByDesc(Deliveryman::getId);
+        return list(wrapper.and(w -> w.in(Deliveryman::getScope, ScopeEnum.COMMON.getCode(), scope)));
     }
 
     @Override
@@ -65,14 +69,14 @@ public class DeliverymanServiceImpl extends ServiceImpl<DeliverymanMapper, Deliv
         long inboundApplyCount = ioApplyService.count(
                 new LambdaQueryWrapper<IoApply>()
                         .eq(IoApply::getDeliverymanId, id)
-                        .eq(IoApply::getOrderType, IoBizTypeConstant.INBOUND));
+                        .eq(IoApply::getOrderType, IoBizTypeEnum.INBOUND.getCode()));
         if (inboundApplyCount > 0) {
             throw new BaseException("该送货员已被入库申请使用，无法删除");
         }
         long outboundApplyCount = ioApplyService.count(
                 new LambdaQueryWrapper<IoApply>()
                         .eq(IoApply::getDeliverymanId, id)
-                        .eq(IoApply::getOrderType, IoBizTypeConstant.OUTBOUND));
+                        .eq(IoApply::getOrderType, IoBizTypeEnum.OUTBOUND.getCode()));
         if (outboundApplyCount > 0) {
             throw new BaseException("该送货员已被出库申请使用，无法删除");
         }

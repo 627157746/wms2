@@ -6,10 +6,13 @@ import com.zhb.wms2.module.io.model.dto.IoApplyCreateDTO;
 import com.zhb.wms2.module.io.model.dto.IoApplyUpdateDTO;
 import com.zhb.wms2.module.io.model.entity.IoApply;
 import com.zhb.wms2.module.io.model.query.IoApplyQuery;
+import com.zhb.wms2.module.io.model.vo.IoApplyPageVO;
 
 public interface IoApplyService extends IService<IoApply> {
 
-    IPage<? extends IoApply> pageQuery(IoApplyQuery query);
+    IPage<IoApplyPageVO> pageQuery(IoApplyQuery query);
+
+    IoApplyPageVO getDetailById(Long id);
 
     Long saveApply(IoApplyCreateDTO dto);
 

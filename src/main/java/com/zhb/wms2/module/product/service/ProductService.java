@@ -4,6 +4,10 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zhb.wms2.module.product.model.entity.Product;
 import com.zhb.wms2.module.product.model.query.ProductQuery;
+import com.zhb.wms2.module.product.model.vo.ProductPageVO;
+
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * @Author zhb
@@ -14,7 +18,11 @@ public interface ProductService extends IService<Product> {
 
     void saveChecked(Product product);
 
-    IPage<? extends Product> pageQuery(ProductQuery query);
+    IPage<ProductPageVO> pageQuery(ProductQuery query);
+
+    ProductPageVO getDetailById(Long id);
+
+    Map<Long, ProductPageVO> getDetailMapByIds(Collection<Long> ids);
 
     void removeByIdChecked(Long id);
 

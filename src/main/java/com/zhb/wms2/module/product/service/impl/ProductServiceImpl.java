@@ -64,12 +64,11 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
-    public IPage<? extends Product> pageQuery(ProductQuery query) {
+    public IPage<ProductPageVO> pageQuery(ProductQuery query) {
         IPage<Product> productPage = page(new Page<>(query.getCurrent(), query.getSize()), buildWrapper(query));
         List<Product> productList = productPage.getRecords();
         if (productList.isEmpty()) {
-            productPage.setRecords(List.of());
-            return productPage;
+            return new Page<>(query.getCurrent(), query.getSize());
         }
 
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
@@ -91,6 +90,61 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                         (left, right) -> left, LinkedHashMap::new));
         return productPage.convert(product -> buildProductPageVO(product, categoryMap, locationMap, unitMap,
                 inventoryMap.get(product.getId())));
+    }
+
+    @Override
+    public ProductPageVO getDetailById(Long id) {
+        Product product = getById(id);
+        if (product == null) {
+            throw new BaseException("商品不存在");
+        }
+
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Map<Long, ProductCategory> categoryMap = dictMap.getProductCategoryMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductCategoryMap();
+        Map<Long, ProductLocation> locationMap = dictMap.getProductLocationMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductLocationMap();
+        Map<Long, ProductUnit> unitMap = dictMap.getProductUnitMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductUnitMap();
+        Inventory inventory = inventoryService.getOne(new LambdaQueryWrapper<Inventory>()
+                .eq(Inventory::getProductId, id), false);
+        return buildProductPageVO(product, categoryMap, locationMap, unitMap, inventory);
+    }
+
+    @Override
+    public Map<Long, ProductPageVO> getDetailMapByIds(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Product> productList = listByIds(ids);
+        if (productList.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Map<Long, ProductCategory> categoryMap = dictMap.getProductCategoryMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductCategoryMap();
+        Map<Long, ProductLocation> locationMap = dictMap.getProductLocationMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductLocationMap();
+        Map<Long, ProductUnit> unitMap = dictMap.getProductUnitMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductUnitMap();
+        Map<Long, Inventory> inventoryMap = inventoryService.list(new LambdaQueryWrapper<Inventory>()
+                        .in(Inventory::getProductId, productList.stream().map(Product::getId).toList()))
+                .stream()
+                .collect(Collectors.toMap(Inventory::getProductId, Function.identity(),
+                        (left, right) -> left, LinkedHashMap::new));
+        return productList.stream()
+                .collect(Collectors.toMap(Product::getId,
+                        product -> buildProductPageVO(product, categoryMap, locationMap, unitMap,
+                                inventoryMap.get(product.getId())),
+                        (left, right) -> left, LinkedHashMap::new));
     }
 
     @Override
@@ -141,6 +195,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return new LambdaQueryWrapper<Product>()
                 .like(StrUtil.isNotBlank(query.getName()), Product::getName, query.getName())
                 .like(StrUtil.isNotBlank(query.getCode()), Product::getCode, query.getCode())
+                .like(StrUtil.isNotBlank(query.getBarcode()), Product::getBarcode, query.getBarcode())
                 .eq(query.getCategoryId() != null, Product::getCategoryId, query.getCategoryId())
                 .eq(query.getUnitId() != null, Product::getUnitId, query.getUnitId())
                 .inSql(Boolean.FALSE.equals(query.getIncludeZeroStock()), Product::getId,
@@ -157,6 +212,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         vo.setId(product.getId());
         vo.setName(product.getName());
         vo.setCode(product.getCode());
+        vo.setBarcode(product.getBarcode());
         vo.setUnitId(product.getUnitId());
         vo.setCategoryId(product.getCategoryId());
         vo.setMinStock(product.getMinStock());

@@ -27,4 +27,7 @@ public class ProductQuery extends BaseQuery {
 
     @Schema(description = "是否包含0库存，true包含，false不包含")
     private Boolean includeZeroStock;
+
+    @Schema(description = "是否只看库存短缺商品，true只看，false查询全部")
+    private Boolean onlyShortageStock;
 }

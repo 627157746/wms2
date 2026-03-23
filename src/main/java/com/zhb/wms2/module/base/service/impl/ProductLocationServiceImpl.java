@@ -13,15 +13,14 @@ import com.zhb.wms2.module.base.service.ProductLocationService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
 import com.zhb.wms2.module.io.model.entity.IoOrderDetail;
 import com.zhb.wms2.module.io.service.IoOrderDetailService;
-import com.zhb.wms2.module.inventory.model.entity.Inventory;
-import com.zhb.wms2.module.inventory.model.entity.InventoryDetail;
-import com.zhb.wms2.module.inventory.service.InventoryDetailService;
-import com.zhb.wms2.module.inventory.service.InventoryService;
 import com.zhb.wms2.module.product.mapper.ProductMapper;
 import com.zhb.wms2.module.product.model.entity.Product;
-import java.util.List;
+import com.zhb.wms2.module.product.model.entity.ProductStockDetail;
+import com.zhb.wms2.module.product.service.ProductStockDetailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * @Author zhb
@@ -33,8 +32,7 @@ import org.springframework.stereotype.Service;
 public class ProductLocationServiceImpl extends ServiceImpl<ProductLocationMapper, ProductLocation> implements ProductLocationService {
 
     private final IoOrderDetailService ioOrderDetailService;
-    private final InventoryDetailService inventoryDetailService;
-    private final InventoryService inventoryService;
+    private final ProductStockDetailService productStockDetailService;
     private final ProductMapper productMapper;
     private final BaseDictMapStore baseDictMapStore;
 
@@ -77,15 +75,15 @@ public class ProductLocationServiceImpl extends ServiceImpl<ProductLocationMappe
         if (ioOrderDetailCount > 0) {
             throw new BaseException("该货位已被出入库记录使用，无法删除");
         }
-        long inventoryDetailCount = inventoryDetailService.count(
-                new LambdaQueryWrapper<InventoryDetail>().eq(InventoryDetail::getLocationId, id));
-        if (inventoryDetailCount > 0) {
+        long stockDetailCount = productStockDetailService.count(
+                new LambdaQueryWrapper<ProductStockDetail>().eq(ProductStockDetail::getLocationId, id));
+        if (stockDetailCount > 0) {
             throw new BaseException("该货位已被库存明细使用，无法删除");
         }
-        long inventoryCount = inventoryService.count(
-                new LambdaQueryWrapper<Inventory>().apply("FIND_IN_SET({0}, location_ids_str)", id));
-        if (inventoryCount > 0) {
-            throw new BaseException("该货位已被库存主表使用，无法删除");
+        long productStockCount = productMapper.selectCount(
+                new LambdaQueryWrapper<Product>().apply("FIND_IN_SET({0}, location_ids_str)", id));
+        if (productStockCount > 0) {
+            throw new BaseException("该货位已被商品库存使用，无法删除");
         }
         long productCount = productMapper.selectCount(
                 new LambdaQueryWrapper<Product>().eq(Product::getInitialStockLocationId, id));

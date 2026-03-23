@@ -1,4 +1,4 @@
-package com.zhb.wms2.module.inventory.model.entity;
+package com.zhb.wms2.module.product.model.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -6,24 +6,23 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.zhb.wms2.common.model.BaseModel;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.io.Serializable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.io.Serializable;
-
 /**
  * @Author zhb
- * @Description
+ * @Description 
  * @Date 2026/3/17 19:38
  */
 /**
- * 库存主表
+ * 库存明细
  */
-@Schema(description="库存主表")
+@Schema(description="商品库存明细")
 @Data
 @EqualsAndHashCode(callSuper=true)
-@TableName(value = "inventory")
-public class Inventory extends BaseModel implements Serializable {
+@TableName(value = "product_stock_detail")
+public class ProductStockDetail extends BaseModel implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
@@ -41,16 +40,16 @@ public class Inventory extends BaseModel implements Serializable {
     private Long productId;
 
     /**
-     * 总库存数
+     * 货位ID
      */
-    @TableField(value = "total_qty")
-    @Schema(description="总库存数")
-    private Long totalQty;
+    @TableField(value = "location_id")
+    @Schema(description="货位ID")
+    private Long locationId;
 
     /**
-     * 货位IDs，逗号分隔
+     * 库存数量
      */
-    @TableField(value = "location_ids_str")
-    @Schema(description="货位IDs，逗号分隔")
-    private String locationIdsStr;
+    @TableField(value = "qty")
+    @Schema(description="库存数量")
+    private Long qty;
 }

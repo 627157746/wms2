@@ -11,19 +11,21 @@ import com.zhb.wms2.module.base.model.entity.ProductCategory;
 import com.zhb.wms2.module.base.model.entity.ProductLocation;
 import com.zhb.wms2.module.base.model.entity.ProductUnit;
 import com.zhb.wms2.module.base.service.BaseDictMapService;
-import com.zhb.wms2.module.inventory.model.entity.Inventory;
-import com.zhb.wms2.module.inventory.model.entity.InventoryDetail;
-import com.zhb.wms2.module.inventory.service.InventoryDetailService;
-import com.zhb.wms2.module.inventory.service.InventoryService;
 import com.zhb.wms2.module.io.model.entity.IoApplyDetail;
 import com.zhb.wms2.module.io.model.entity.IoOrderDetail;
 import com.zhb.wms2.module.io.service.IoApplyDetailService;
 import com.zhb.wms2.module.io.service.IoOrderDetailService;
 import com.zhb.wms2.module.product.mapper.ProductMapper;
 import com.zhb.wms2.module.product.model.entity.Product;
+import com.zhb.wms2.module.product.model.entity.ProductStockDetail;
+import com.zhb.wms2.module.product.model.query.StockDistributionQuery;
 import com.zhb.wms2.module.product.model.query.ProductQuery;
+import com.zhb.wms2.module.product.model.vo.StockDistributionGroupVO;
+import com.zhb.wms2.module.product.model.vo.StockDistributionItemVO;
 import com.zhb.wms2.module.product.model.vo.ProductPageVO;
 import com.zhb.wms2.module.product.service.ProductService;
+import com.zhb.wms2.module.product.service.ProductStockDetailService;
+import com.zhb.wms2.module.product.service.support.ProductStockSummaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,10 +48,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     private static final String NO_LOCATION_CODE = "无货位";
 
     private final BaseDictMapService baseDictMapService;
-    private final InventoryService inventoryService;
-    private final InventoryDetailService inventoryDetailService;
+    private final ProductStockDetailService productStockDetailService;
     private final IoApplyDetailService ioApplyDetailService;
     private final IoOrderDetailService ioOrderDetailService;
+    private final ProductStockSummaryService productStockSummaryService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -81,15 +83,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         Map<Long, ProductUnit> unitMap = dictMap.getProductUnitMap() == null
                 ? Collections.emptyMap()
                 : dictMap.getProductUnitMap();
-
-        List<Long> productIds = productList.stream().map(Product::getId).toList();
-        Map<Long, Inventory> inventoryMap = inventoryService.list(new LambdaQueryWrapper<Inventory>()
-                        .in(Inventory::getProductId, productIds))
-                .stream()
-                .collect(Collectors.toMap(Inventory::getProductId, Function.identity(),
-                        (left, right) -> left, LinkedHashMap::new));
-        return productPage.convert(product -> buildProductPageVO(product, categoryMap, locationMap, unitMap,
-                inventoryMap.get(product.getId())));
+        return productPage.convert(product -> buildProductPageVO(product, categoryMap, locationMap, unitMap));
     }
 
     @Override
@@ -109,9 +103,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         Map<Long, ProductUnit> unitMap = dictMap.getProductUnitMap() == null
                 ? Collections.emptyMap()
                 : dictMap.getProductUnitMap();
-        Inventory inventory = inventoryService.getOne(new LambdaQueryWrapper<Inventory>()
-                .eq(Inventory::getProductId, id), false);
-        return buildProductPageVO(product, categoryMap, locationMap, unitMap, inventory);
+        return buildProductPageVO(product, categoryMap, locationMap, unitMap);
     }
 
     @Override
@@ -135,20 +127,55 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         Map<Long, ProductUnit> unitMap = dictMap.getProductUnitMap() == null
                 ? Collections.emptyMap()
                 : dictMap.getProductUnitMap();
-        Map<Long, Inventory> inventoryMap = inventoryService.list(new LambdaQueryWrapper<Inventory>()
-                        .in(Inventory::getProductId, productList.stream().map(Product::getId).toList()))
-                .stream()
-                .collect(Collectors.toMap(Inventory::getProductId, Function.identity(),
-                        (left, right) -> left, LinkedHashMap::new));
         return productList.stream()
                 .collect(Collectors.toMap(Product::getId,
-                        product -> buildProductPageVO(product, categoryMap, locationMap, unitMap,
-                                inventoryMap.get(product.getId())),
+                        product -> buildProductPageVO(product, categoryMap, locationMap, unitMap),
                         (left, right) -> left, LinkedHashMap::new));
     }
 
     @Override
+    public List<StockDistributionGroupVO> listDistribution(StockDistributionQuery query) {
+        LambdaQueryWrapper<ProductStockDetail> wrapper = new LambdaQueryWrapper<ProductStockDetail>()
+                .gt(ProductStockDetail::getQty, 0)
+                .eq(query.getLocationId() != null, ProductStockDetail::getLocationId, query.getLocationId())
+                .eq(query.getProductId() != null, ProductStockDetail::getProductId, query.getProductId())
+                .orderByAsc(ProductStockDetail::getProductId)
+                .orderByAsc(ProductStockDetail::getLocationId)
+                .orderByAsc(ProductStockDetail::getId);
+        List<ProductStockDetail> detailList = productStockDetailService.list(wrapper);
+        if (detailList.isEmpty()) {
+            return List.of();
+        }
+
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Map<Long, ProductLocation> locationMap = dictMap.getProductLocationMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductLocationMap();
+        Map<Long, ProductUnit> unitMap = dictMap.getProductUnitMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductUnitMap();
+        Map<Long, Product> productMap = buildProductMap(detailList.stream()
+                .map(ProductStockDetail::getProductId)
+                .distinct()
+                .toList());
+
+        List<DistributionRow> rowList = detailList.stream()
+                .map(detail -> buildDistributionRow(detail, productMap, locationMap, unitMap))
+                .filter(Objects::nonNull)
+                .sorted(buildRowComparator())
+                .toList();
+        if (rowList.isEmpty()) {
+            return List.of();
+        }
+        return buildLocationGroupList(rowList);
+    }
+
+    @Override
     public void removeByIdChecked(Long id) {
+        Product product = getById(id);
+        if (product == null) {
+            throw new BaseException("商品不存在");
+        }
         long ioApplyDetailCount = ioApplyDetailService.count(
                 new LambdaQueryWrapper<IoApplyDetail>().eq(IoApplyDetail::getProductId, id));
         if (ioApplyDetailCount > 0) {
@@ -159,14 +186,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (ioOrderDetailCount > 0) {
             throw new BaseException("该商品已被出入库记录使用，无法删除");
         }
-        long inventoryCount = inventoryService.count(
-                new LambdaQueryWrapper<Inventory>().eq(Inventory::getProductId, id));
-        if (inventoryCount > 0) {
+        if (product.getTotalStockQty() != null && product.getTotalStockQty() > 0) {
             throw new BaseException("该商品仍有库存，无法删除");
         }
-        long inventoryDetailCount = inventoryDetailService.count(
-                new LambdaQueryWrapper<InventoryDetail>().eq(InventoryDetail::getProductId, id));
-        if (inventoryDetailCount > 0) {
+        long stockDetailCount = productStockDetailService.count(
+                new LambdaQueryWrapper<ProductStockDetail>().eq(ProductStockDetail::getProductId, id));
+        if (stockDetailCount > 0) {
             throw new BaseException("该商品仍有库存明细，无法删除");
         }
         if (!removeById(id)) {
@@ -198,16 +223,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .like(StrUtil.isNotBlank(query.getBarcode()), Product::getBarcode, query.getBarcode())
                 .eq(query.getCategoryId() != null, Product::getCategoryId, query.getCategoryId())
                 .eq(query.getUnitId() != null, Product::getUnitId, query.getUnitId())
-                .inSql(Boolean.FALSE.equals(query.getIncludeZeroStock()), Product::getId,
-                        "select product_id from inventory where total_qty > 0")
+                .gt(Boolean.FALSE.equals(query.getIncludeZeroStock()), Product::getTotalStockQty, 0)
+                .apply(Boolean.TRUE.equals(query.getOnlyShortageStock()), "min_stock > COALESCE(total_stock_qty, 0)")
                 .orderByDesc(Product::getId);
     }
 
     private ProductPageVO buildProductPageVO(Product product,
                                              Map<Long, ProductCategory> categoryMap,
                                              Map<Long, ProductLocation> locationMap,
-                                             Map<Long, ProductUnit> unitMap,
-                                             Inventory inventory) {
+                                             Map<Long, ProductUnit> unitMap) {
         ProductPageVO vo = new ProductPageVO();
         vo.setId(product.getId());
         vo.setName(product.getName());
@@ -218,8 +242,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         vo.setMinStock(product.getMinStock());
         vo.setInitialStock(product.getInitialStock());
         vo.setInitialStockLocationId(product.getInitialStockLocationId());
-        vo.setTotalStockQty(inventory == null || inventory.getTotalQty() == null ? 0L : inventory.getTotalQty());
-        vo.setLocationCodes(buildLocationCodes(inventory == null ? null : inventory.getLocationIdsStr(), locationMap));
+        vo.setTotalStockQty(product.getTotalStockQty() == null ? 0L : product.getTotalStockQty());
+        vo.setLocationIdsStr(product.getLocationIdsStr());
+        vo.setLocationCodes(buildLocationCodes(product.getLocationIdsStr(), locationMap));
         ProductUnit unit = unitMap.get(product.getUnitId());
         vo.setProductUnitName(unit == null ? null : unit.getName());
         ProductCategory category = categoryMap.get(product.getCategoryId());
@@ -253,6 +278,93 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                     }
                 })
                 .toList();
+    }
+
+    private Map<Long, Product> buildProductMap(Collection<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return baseMapper.selectBatchIds(productIds).stream()
+                .collect(LinkedHashMap::new, (map, product) -> map.put(product.getId(), product), Map::putAll);
+    }
+
+    private DistributionRow buildDistributionRow(ProductStockDetail detail,
+                                                 Map<Long, Product> productMap,
+                                                 Map<Long, ProductLocation> locationMap,
+                                                 Map<Long, ProductUnit> unitMap) {
+        Product product = productMap.get(detail.getProductId());
+        if (product == null) {
+            return null;
+        }
+
+        Long locationId = detail.getLocationId();
+        String locationCode = buildLocationCode(locationId, locationMap);
+        Integer locationSortOrder = buildLocationSortOrder(locationId, locationMap);
+        ProductUnit productUnit = unitMap.get(product.getUnitId());
+        return new DistributionRow(
+                product.getId(),
+                product.getCode(),
+                product.getName(),
+                product.getUnitId(),
+                productUnit == null ? null : productUnit.getName(),
+                locationId,
+                locationCode,
+                locationSortOrder,
+                detail.getQty()
+        );
+    }
+
+    private Comparator<DistributionRow> buildRowComparator() {
+        return Comparator
+                .comparing(DistributionRow::getLocationSortOrder, Comparator.nullsLast(Integer::compareTo))
+                .thenComparing(DistributionRow::getLocationCode, Comparator.nullsLast(String::compareToIgnoreCase))
+                .thenComparing(DistributionRow::getLocationId, Comparator.nullsLast(Long::compareTo))
+                .thenComparing(DistributionRow::getProductCode, Comparator.nullsLast(String::compareToIgnoreCase))
+                .thenComparing(DistributionRow::getProductId, Comparator.nullsLast(Long::compareTo));
+    }
+
+    private List<StockDistributionGroupVO> buildLocationGroupList(List<DistributionRow> rowList) {
+        Map<Long, StockDistributionGroupVO> groupMap = new LinkedHashMap<>();
+        for (DistributionRow row : rowList) {
+            StockDistributionGroupVO group = groupMap.computeIfAbsent(row.getLocationId(), locationId -> {
+                StockDistributionGroupVO vo = new StockDistributionGroupVO();
+                vo.setLocationId(locationId);
+                vo.setLocationCode(row.getLocationCode());
+                vo.setTotalQty(0L);
+                vo.setItemList(new ArrayList<>());
+                return vo;
+            });
+            group.getItemList().add(buildDistributionItem(row));
+            group.setTotalQty(group.getTotalQty() + row.getQty());
+        }
+        return new ArrayList<>(groupMap.values());
+    }
+
+    private StockDistributionItemVO buildDistributionItem(DistributionRow row) {
+        StockDistributionItemVO item = new StockDistributionItemVO();
+        item.setProductId(row.getProductId());
+        item.setProductCode(row.getProductCode());
+        item.setProductName(row.getProductName());
+        item.setUnitId(row.getUnitId());
+        item.setUnitName(row.getUnitName());
+        item.setQty(row.getQty());
+        return item;
+    }
+
+    private String buildLocationCode(Long locationId, Map<Long, ProductLocation> locationMap) {
+        if (Objects.equals(locationId, NO_LOCATION_ID)) {
+            return NO_LOCATION_CODE;
+        }
+        ProductLocation location = locationMap.get(locationId);
+        return location == null ? null : location.getCode();
+    }
+
+    private Integer buildLocationSortOrder(Long locationId, Map<Long, ProductLocation> locationMap) {
+        if (Objects.equals(locationId, NO_LOCATION_ID)) {
+            return Integer.MAX_VALUE;
+        }
+        ProductLocation location = locationMap.get(locationId);
+        return location == null ? null : location.getSortOrder();
     }
 
     private void validateProduct(Product product, Long excludeId) {
@@ -291,15 +403,19 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (product.getInitialStock() == 0L || product.getInitialStockLocationId() == null) {
             product.setInitialStockLocationId(NO_LOCATION_ID);
         }
+        if (product.getId() == null) {
+            product.setTotalStockQty(0L);
+            product.setLocationIdsStr(null);
+        }
     }
 
     private void applyInitialStockChange(Long productId, Long oldQty, Long oldLocationId,
                                          Long newQty, Long newLocationId) {
         // 只调整“期初库存贡献”的那部分明细，保留后续真实入库形成的其它货位库存。
-        Map<Long, InventoryDetail> detailMap = inventoryDetailService.list(new LambdaQueryWrapper<InventoryDetail>()
-                        .eq(InventoryDetail::getProductId, productId))
+        Map<Long, ProductStockDetail> detailMap = productStockDetailService.list(new LambdaQueryWrapper<ProductStockDetail>()
+                        .eq(ProductStockDetail::getProductId, productId))
                 .stream()
-                .collect(Collectors.toMap(InventoryDetail::getLocationId, Function.identity(),
+                .collect(Collectors.toMap(ProductStockDetail::getLocationId, Function.identity(),
                         (left, right) -> left, LinkedHashMap::new));
 
         if (oldQty > 0) {
@@ -308,50 +424,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         if (newQty > 0) {
             changeDetailQty(detailMap, productId, newLocationId, newQty);
         }
-        syncInventoryMain(productId, detailMap);
+        productStockSummaryService.syncByDetailMap(productId, detailMap);
     }
 
-    private void syncInventoryMain(Long productId, Map<Long, InventoryDetail> detailMap) {
-        // 主库存始终以当前全部库存明细汇总结果为准。
-        Inventory inventory = inventoryService.getOne(new LambdaQueryWrapper<Inventory>()
-                .eq(Inventory::getProductId, productId), false);
-        if (detailMap.isEmpty()) {
-            if (inventory != null) {
-                inventoryService.removeById(inventory.getId());
-            }
-            return;
-        }
-
-        Long totalQty = detailMap.values().stream()
-                .map(InventoryDetail::getQty)
-                .reduce(0L, Long::sum);
-        String locationIdsStr = detailMap.keySet().stream()
-                .filter(locationId -> !Objects.equals(locationId, NO_LOCATION_ID))
-                .sorted(Comparator.naturalOrder())
-                .map(String::valueOf)
-                .collect(Collectors.joining(","));
-        if (locationIdsStr.isBlank()) {
-            locationIdsStr = null;
-        }
-        if (inventory == null) {
-            inventory = new Inventory();
-            inventory.setProductId(productId);
-            inventory.setTotalQty(totalQty);
-            inventory.setLocationIdsStr(locationIdsStr);
-            inventoryService.save(inventory);
-            return;
-        }
-        inventory.setTotalQty(totalQty);
-        inventory.setLocationIdsStr(locationIdsStr);
-        inventoryService.updateById(inventory);
-    }
-
-    private void changeDetailQty(Map<Long, InventoryDetail> detailMap, Long productId, Long locationId, Long delta) {
+    private void changeDetailQty(Map<Long, ProductStockDetail> detailMap, Long productId, Long locationId, Long delta) {
         if (delta == 0) {
             return;
         }
 
-        InventoryDetail detail = detailMap.get(locationId);
+        ProductStockDetail detail = detailMap.get(locationId);
         long currentQty = detail == null || detail.getQty() == null ? 0L : detail.getQty();
         long targetQty = currentQty + delta;
         if (targetQty < 0) {
@@ -359,21 +440,84 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
         if (targetQty == 0) {
             // 该货位数量归零时直接删除明细，避免留下 0 库存脏数据。
-            inventoryDetailService.removeById(detail.getId());
+            productStockDetailService.removeById(detail.getId());
             detailMap.remove(locationId);
             return;
         }
         if (detail == null) {
             // 新货位首次出现时补一条库存明细。
-            InventoryDetail inventoryDetail = new InventoryDetail();
-            inventoryDetail.setProductId(productId);
-            inventoryDetail.setLocationId(locationId);
-            inventoryDetail.setQty(targetQty);
-            inventoryDetailService.save(inventoryDetail);
-            detailMap.put(locationId, inventoryDetail);
+            ProductStockDetail productStockDetail = new ProductStockDetail();
+            productStockDetail.setProductId(productId);
+            productStockDetail.setLocationId(locationId);
+            productStockDetail.setQty(targetQty);
+            productStockDetailService.save(productStockDetail);
+            detailMap.put(locationId, productStockDetail);
             return;
         }
         detail.setQty(targetQty);
-        inventoryDetailService.updateById(detail);
+        productStockDetailService.updateById(detail);
+    }
+
+    private static class DistributionRow {
+
+        private final Long productId;
+        private final String productCode;
+        private final String productName;
+        private final Long unitId;
+        private final String unitName;
+        private final Long locationId;
+        private final String locationCode;
+        private final Integer locationSortOrder;
+        private final Long qty;
+
+        private DistributionRow(Long productId, String productCode, String productName,
+                                Long unitId, String unitName, Long locationId,
+                                String locationCode, Integer locationSortOrder, Long qty) {
+            this.productId = productId;
+            this.productCode = productCode;
+            this.productName = productName;
+            this.unitId = unitId;
+            this.unitName = unitName;
+            this.locationId = locationId;
+            this.locationCode = locationCode;
+            this.locationSortOrder = locationSortOrder;
+            this.qty = qty;
+        }
+
+        public Long getProductId() {
+            return productId;
+        }
+
+        public String getProductCode() {
+            return productCode;
+        }
+
+        public String getProductName() {
+            return productName;
+        }
+
+        public Long getUnitId() {
+            return unitId;
+        }
+
+        public String getUnitName() {
+            return unitName;
+        }
+
+        public Long getLocationId() {
+            return locationId;
+        }
+
+        public String getLocationCode() {
+            return locationCode;
+        }
+
+        public Integer getLocationSortOrder() {
+            return locationSortOrder;
+        }
+
+        public Long getQty() {
+            return qty;
+        }
     }
 }

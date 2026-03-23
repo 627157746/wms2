@@ -1,11 +1,11 @@
-package com.zhb.wms2.module.inventory.controller;
+package com.zhb.wms2.module.product.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.zhb.wms2.common.model.R;
-import com.zhb.wms2.module.inventory.model.dto.LocationTransferCreateDTO;
-import com.zhb.wms2.module.inventory.model.query.LocationTransferQuery;
-import com.zhb.wms2.module.inventory.model.vo.LocationTransferPageVO;
-import com.zhb.wms2.module.inventory.service.LocationTransferService;
+import com.zhb.wms2.module.product.model.dto.LocationTransferCreateDTO;
+import com.zhb.wms2.module.product.model.query.LocationTransferQuery;
+import com.zhb.wms2.module.product.model.vo.LocationTransferPageVO;
+import com.zhb.wms2.module.product.service.LocationTransferService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/inventory/locationTransfer")
+@RequestMapping("/product/locationTransfer")
 @Tag(name = "转货位", description = "转货位管理")
 @RequiredArgsConstructor
 @Validated

@@ -1,4 +1,4 @@
-package com.zhb.wms2.module.inventory.model.query;
+package com.zhb.wms2.module.product.model.query;
 
 import com.zhb.wms2.common.model.BaseQuery;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "商品出入库明细分页查询条件")
-public class InventoryIoDetailQuery extends BaseQuery {
+public class StockIoDetailQuery extends BaseQuery {
 
     @Schema(description = "商品ID")
     @NotNull(message = "商品ID不能为空")

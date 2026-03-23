@@ -1,6 +1,6 @@
-package com.zhb.wms2.module.inventory.model.vo;
+package com.zhb.wms2.module.product.model.vo;
 
-import com.zhb.wms2.module.inventory.model.entity.LocationTransfer;
+import com.zhb.wms2.module.product.model.entity.LocationTransfer;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

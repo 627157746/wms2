@@ -14,7 +14,7 @@ public class HomeStatVO {
     private Long todayOutboundCount;
 
     @Schema(description = "库存短缺预警数")
-    private Long inventoryShortageWarnCount;
+    private Long stockShortageWarnCount;
 
     @Schema(description = "入库申请未审批数")
     private Long inboundApplyUnapprovedCount;

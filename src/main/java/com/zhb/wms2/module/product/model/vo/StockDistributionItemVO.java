@@ -1,11 +1,11 @@
-package com.zhb.wms2.module.inventory.model.vo;
+package com.zhb.wms2.module.product.model.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 @Data
 @Schema(description = "库存分布明细项")
-public class InventoryDistributionItemVO {
+public class StockDistributionItemVO {
 
     @Schema(description = "商品ID")
     private Long productId;

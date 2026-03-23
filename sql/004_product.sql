@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS product (
   min_stock BIGINT NOT NULL DEFAULT 0 COMMENT '最低库存',
   initial_stock BIGINT NOT NULL DEFAULT 0 COMMENT '期初库存',
   initial_stock_location_id BIGINT NULL COMMENT '期初库存货位ID，0表示无货位',
+  total_stock_qty BIGINT NOT NULL DEFAULT 0 COMMENT '当前总库存',
+  location_ids_str VARCHAR(255) NULL COMMENT '库存货位IDs，逗号分隔',
   remark VARCHAR(255) NULL COMMENT '备注',
   create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

@@ -1,4 +1,4 @@
-package com.zhb.wms2.module.inventory.service.impl;
+package com.zhb.wms2.module.product.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -8,19 +8,17 @@ import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.model.dto.BaseDictMapDTO;
 import com.zhb.wms2.module.base.model.entity.ProductLocation;
 import com.zhb.wms2.module.base.service.BaseDictMapService;
-import com.zhb.wms2.module.inventory.mapper.LocationTransferMapper;
-import com.zhb.wms2.module.inventory.model.dto.LocationTransferCreateDTO;
-import com.zhb.wms2.module.inventory.model.entity.Inventory;
-import com.zhb.wms2.module.inventory.model.entity.InventoryDetail;
-import com.zhb.wms2.module.inventory.model.entity.LocationTransfer;
-import com.zhb.wms2.module.inventory.model.query.LocationTransferQuery;
-import com.zhb.wms2.module.inventory.model.vo.LocationTransferPageVO;
-import com.zhb.wms2.module.inventory.service.InventoryDetailService;
-import com.zhb.wms2.module.inventory.service.InventoryService;
-import com.zhb.wms2.module.inventory.service.LocationTransferService;
 import com.zhb.wms2.module.product.mapper.ProductMapper;
+import com.zhb.wms2.module.product.mapper.LocationTransferMapper;
 import com.zhb.wms2.module.product.model.entity.Product;
-import java.util.Comparator;
+import com.zhb.wms2.module.product.model.entity.ProductStockDetail;
+import com.zhb.wms2.module.product.model.entity.LocationTransfer;
+import com.zhb.wms2.module.product.model.dto.LocationTransferCreateDTO;
+import com.zhb.wms2.module.product.model.query.LocationTransferQuery;
+import com.zhb.wms2.module.product.model.vo.LocationTransferPageVO;
+import com.zhb.wms2.module.product.service.LocationTransferService;
+import com.zhb.wms2.module.product.service.ProductStockDetailService;
+import com.zhb.wms2.module.product.service.support.ProductStockSummaryService;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,8 +40,8 @@ public class LocationTransferServiceImpl extends ServiceImpl<LocationTransferMap
 
     private final ProductMapper productMapper;
     private final BaseDictMapService baseDictMapService;
-    private final InventoryService inventoryService;
-    private final InventoryDetailService inventoryDetailService;
+    private final ProductStockDetailService productStockDetailService;
+    private final ProductStockSummaryService productStockSummaryService;
 
     @Override
     public IPage<LocationTransferPageVO> pageQuery(LocationTransferQuery query) {
@@ -73,13 +71,13 @@ public class LocationTransferServiceImpl extends ServiceImpl<LocationTransferMap
     public Long createTransfer(LocationTransferCreateDTO dto) {
         validateTransfer(dto);
 
-        Map<Long, InventoryDetail> detailMap = inventoryDetailService.list(new LambdaQueryWrapper<InventoryDetail>()
-                        .eq(InventoryDetail::getProductId, dto.getProductId()))
+        Map<Long, ProductStockDetail> detailMap = productStockDetailService.list(new LambdaQueryWrapper<ProductStockDetail>()
+                        .eq(ProductStockDetail::getProductId, dto.getProductId()))
                 .stream()
-                .collect(Collectors.toMap(InventoryDetail::getLocationId, Function.identity(),
+                .collect(Collectors.toMap(ProductStockDetail::getLocationId, Function.identity(),
                         (left, right) -> left, LinkedHashMap::new));
 
-        InventoryDetail fromDetail = detailMap.get(dto.getFromLocationId());
+        ProductStockDetail fromDetail = detailMap.get(dto.getFromLocationId());
         long fromQty = fromDetail == null || fromDetail.getQty() == null ? 0L : fromDetail.getQty();
         if (fromQty < dto.getTransferQty()) {
             throw new BaseException("原货位库存不足，无法转移");
@@ -87,7 +85,7 @@ public class LocationTransferServiceImpl extends ServiceImpl<LocationTransferMap
 
         changeDetailQty(detailMap, dto.getProductId(), dto.getFromLocationId(), -dto.getTransferQty());
         changeDetailQty(detailMap, dto.getProductId(), dto.getToLocationId(), dto.getTransferQty());
-        syncInventoryMain(dto.getProductId(), detailMap);
+        productStockSummaryService.syncByDetailMap(dto.getProductId(), detailMap);
 
         LocationTransfer transfer = new LocationTransfer();
         transfer.setProductId(dto.getProductId());
@@ -164,66 +162,32 @@ public class LocationTransferServiceImpl extends ServiceImpl<LocationTransferMap
         return location == null ? null : location.getCode();
     }
 
-    private void syncInventoryMain(Long productId, Map<Long, InventoryDetail> detailMap) {
-        Inventory inventory = inventoryService.getOne(
-                new LambdaQueryWrapper<Inventory>().eq(Inventory::getProductId, productId), false);
-        if (detailMap.isEmpty()) {
-            if (inventory != null) {
-                inventoryService.removeById(inventory.getId());
-            }
-            return;
-        }
-
-        Long totalQty = detailMap.values().stream()
-                .map(InventoryDetail::getQty)
-                .reduce(0L, Long::sum);
-        String locationIdsStr = detailMap.keySet().stream()
-                .filter(locationId -> !Objects.equals(locationId, NO_LOCATION_ID))
-                .sorted(Comparator.naturalOrder())
-                .map(String::valueOf)
-                .collect(Collectors.joining(","));
-        if (locationIdsStr.isBlank()) {
-            locationIdsStr = null;
-        }
-        if (inventory == null) {
-            Inventory newInventory = new Inventory();
-            newInventory.setProductId(productId);
-            newInventory.setTotalQty(totalQty);
-            newInventory.setLocationIdsStr(locationIdsStr);
-            inventoryService.save(newInventory);
-            return;
-        }
-        inventory.setTotalQty(totalQty);
-        inventory.setLocationIdsStr(locationIdsStr);
-        inventoryService.updateById(inventory);
-    }
-
-    private void changeDetailQty(Map<Long, InventoryDetail> detailMap, Long productId, Long locationId, Long delta) {
+    private void changeDetailQty(Map<Long, ProductStockDetail> detailMap, Long productId, Long locationId, Long delta) {
         if (delta == 0) {
             return;
         }
 
-        InventoryDetail detail = detailMap.get(locationId);
+        ProductStockDetail detail = detailMap.get(locationId);
         long currentQty = detail == null || detail.getQty() == null ? 0L : detail.getQty();
         long targetQty = currentQty + delta;
         if (targetQty < 0) {
             throw new BaseException("库存明细数量异常，无法完成转货位");
         }
         if (targetQty == 0) {
-            inventoryDetailService.removeById(detail.getId());
+            productStockDetailService.removeById(detail.getId());
             detailMap.remove(locationId);
             return;
         }
         if (detail == null) {
-            InventoryDetail inventoryDetail = new InventoryDetail();
-            inventoryDetail.setProductId(productId);
-            inventoryDetail.setLocationId(locationId);
-            inventoryDetail.setQty(targetQty);
-            inventoryDetailService.save(inventoryDetail);
-            detailMap.put(locationId, inventoryDetail);
+            ProductStockDetail productStockDetail = new ProductStockDetail();
+            productStockDetail.setProductId(productId);
+            productStockDetail.setLocationId(locationId);
+            productStockDetail.setQty(targetQty);
+            productStockDetailService.save(productStockDetail);
+            detailMap.put(locationId, productStockDetail);
             return;
         }
         detail.setQty(targetQty);
-        inventoryDetailService.updateById(detail);
+        productStockDetailService.updateById(detail);
     }
 }

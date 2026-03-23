@@ -1,4 +1,4 @@
-package com.zhb.wms2.module.inventory.model.entity;
+package com.zhb.wms2.module.product.model.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;

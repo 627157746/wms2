@@ -9,6 +9,8 @@ import com.zhb.wms2.module.io.model.dto.IoOrderUpdateDTO;
 import com.zhb.wms2.module.io.model.query.IoOrderQuery;
 import com.zhb.wms2.module.io.model.vo.IoOrderPageVO;
 import com.zhb.wms2.module.io.service.IoOrderService;
+import com.zhb.wms2.module.product.model.query.StockIoDetailQuery;
+import com.zhb.wms2.module.product.model.vo.StockIoDetailVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -76,5 +78,13 @@ public class IoOrderController {
             @PathVariable @NotNull @Min(1) Long id) {
         ioOrderService.removeByIdChecked(id);
         return R.optOk();
+    }
+
+    @GetMapping("/ioDetail/page")
+    @Operation(summary = "分页查询商品出入库明细")
+    public R<IPage<StockIoDetailVO>> ioDetailPage(
+            @Parameter(description = "查询条件")
+            @Validated StockIoDetailQuery query) {
+        return R.ok(ioOrderService.pageDetailByProductId(query));
     }
 }

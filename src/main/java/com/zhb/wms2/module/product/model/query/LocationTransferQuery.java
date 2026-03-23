@@ -1,4 +1,4 @@
-package com.zhb.wms2.module.inventory.model.query;
+package com.zhb.wms2.module.product.model.query;
 
 import com.zhb.wms2.common.model.BaseQuery;
 import io.swagger.v3.oas.annotations.media.Schema;

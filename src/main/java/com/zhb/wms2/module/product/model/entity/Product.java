@@ -104,6 +104,20 @@ public class Product extends BaseModel implements Serializable {
     private Long initialStockLocationId;
 
     /**
+     * 当前总库存
+     */
+    @TableField(value = "total_stock_qty")
+    @Schema(description="当前总库存")
+    private Long totalStockQty;
+
+    /**
+     * 库存货位IDs，逗号分隔
+     */
+    @TableField(value = "location_ids_str")
+    @Schema(description="库存货位IDs，逗号分隔")
+    private String locationIdsStr;
+
+    /**
      * 备注
      */
     @TableField(value = "remark")

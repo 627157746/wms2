@@ -1,4 +1,4 @@
-package com.zhb.wms2.module.inventory.model.vo;
+package com.zhb.wms2.module.product.model.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 @Schema(description = "库存分布分组结果")
-public class InventoryDistributionGroupVO {
+public class StockDistributionGroupVO {
 
     @Schema(description = "货位ID")
     private Long locationId;
@@ -19,5 +19,5 @@ public class InventoryDistributionGroupVO {
     private Long totalQty;
 
     @Schema(description = "货位下商品列表")
-    private List<InventoryDistributionItemVO> itemList;
+    private List<StockDistributionItemVO> itemList;
 }

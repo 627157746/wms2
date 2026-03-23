@@ -1,4 +1,4 @@
-package com.zhb.wms2.module.inventory.model.vo;
+package com.zhb.wms2.module.product.model.vo;
 
 import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
@@ -10,7 +10,7 @@ import java.time.LocalDate;
 
 @Data
 @Schema(description = "商品出入库明细结果")
-public class InventoryIoDetailVO {
+public class StockIoDetailVO {
 
     @Schema(description = "出入库单ID")
     private Long orderId;

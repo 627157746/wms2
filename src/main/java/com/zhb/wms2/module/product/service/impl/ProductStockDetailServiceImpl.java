@@ -1,4 +1,4 @@
-package com.zhb.wms2.module.inventory.service.impl;
+package com.zhb.wms2.module.product.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -6,11 +6,11 @@ import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.model.dto.BaseDictMapDTO;
 import com.zhb.wms2.module.base.model.entity.ProductLocation;
 import com.zhb.wms2.module.base.service.BaseDictMapService;
-import com.zhb.wms2.module.inventory.mapper.InventoryDetailMapper;
-import com.zhb.wms2.module.inventory.model.entity.InventoryDetail;
-import com.zhb.wms2.module.inventory.model.vo.InventoryDetailVO;
-import com.zhb.wms2.module.inventory.service.InventoryDetailService;
 import com.zhb.wms2.module.product.mapper.ProductMapper;
+import com.zhb.wms2.module.product.mapper.ProductStockDetailMapper;
+import com.zhb.wms2.module.product.model.entity.ProductStockDetail;
+import com.zhb.wms2.module.product.model.vo.ProductStockDetailVO;
+import com.zhb.wms2.module.product.service.ProductStockDetailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,8 +26,8 @@ import java.util.Objects;
  */
 @Service
 @RequiredArgsConstructor
-public class InventoryDetailServiceImpl extends ServiceImpl<InventoryDetailMapper, InventoryDetail>
-        implements InventoryDetailService {
+public class ProductStockDetailServiceImpl extends ServiceImpl<ProductStockDetailMapper, ProductStockDetail>
+        implements ProductStockDetailService {
 
     private static final Long NO_LOCATION_ID = 0L;
     private static final String NO_LOCATION_CODE = "无货位";
@@ -36,15 +36,15 @@ public class InventoryDetailServiceImpl extends ServiceImpl<InventoryDetailMappe
     private final BaseDictMapService baseDictMapService;
 
     @Override
-    public List<InventoryDetailVO> listByProductId(Long productId) {
+    public List<ProductStockDetailVO> listByProductId(Long productId) {
         if (productMapper.selectById(productId) == null) {
             throw new BaseException("商品不存在");
         }
 
-        List<InventoryDetail> detailList = list(new LambdaQueryWrapper<InventoryDetail>()
-                .eq(InventoryDetail::getProductId, productId)
-                .orderByAsc(InventoryDetail::getLocationId)
-                .orderByAsc(InventoryDetail::getId));
+        List<ProductStockDetail> detailList = list(new LambdaQueryWrapper<ProductStockDetail>()
+                .eq(ProductStockDetail::getProductId, productId)
+                .orderByAsc(ProductStockDetail::getLocationId)
+                .orderByAsc(ProductStockDetail::getId));
         if (detailList.isEmpty()) {
             return List.of();
         }
@@ -55,7 +55,7 @@ public class InventoryDetailServiceImpl extends ServiceImpl<InventoryDetailMappe
                 : new LinkedHashMap<>(dictMap.getProductLocationMap());
 
         return detailList.stream().map(detail -> {
-            InventoryDetailVO vo = new InventoryDetailVO();
+            ProductStockDetailVO vo = new ProductStockDetailVO();
             vo.setId(detail.getId());
             vo.setProductId(detail.getProductId());
             vo.setLocationId(detail.getLocationId());

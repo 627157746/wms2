@@ -1,4 +1,4 @@
-package com.zhb.wms2.module.inventory.model.dto;
+package com.zhb.wms2.module.product.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;

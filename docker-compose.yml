@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  app:
+    image: openjdk:21-jdk
+    container_name: wms2
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./wms2-1.0.jar:/app/app.jar
+    environment:
+      TZ: Asia/Shanghai
+    command: ["sh", "-c", "java ${JAVA_OPTS} -jar /app/app.jar --spring.profiles.active=prod"]
+    ports:
+      - "10022:10022"

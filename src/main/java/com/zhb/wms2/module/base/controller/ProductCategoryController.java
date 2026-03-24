@@ -3,6 +3,7 @@ package com.zhb.wms2.module.base.controller;
 import com.zhb.wms2.common.model.R;
 import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
+import com.zhb.wms2.module.base.model.dto.ProductCategorySortDTO;
 import com.zhb.wms2.module.base.model.entity.ProductCategory;
 import com.zhb.wms2.module.base.model.vo.ProductCategoryTreeVO;
 import com.zhb.wms2.module.base.service.ProductCategoryService;
@@ -55,6 +56,15 @@ public class ProductCategoryController {
     @Operation(summary = "树形查询商品分类")
     public R<List<ProductCategoryTreeVO>> tree() {
         return R.ok(productCategoryService.tree());
+    }
+
+    @PutMapping("/sort")
+    @Operation(summary = "同级商品分类重新排序")
+    public R<Void> sort(
+            @Parameter(description = "商品分类排序参数", required = true)
+            @RequestBody @Validated ProductCategorySortDTO dto) {
+        productCategoryService.sortSameLevel(dto);
+        return R.optOk();
     }
 
     @DeleteMapping("/{id}")

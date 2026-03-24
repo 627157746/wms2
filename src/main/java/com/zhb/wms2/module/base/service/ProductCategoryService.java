@@ -1,6 +1,7 @@
 package com.zhb.wms2.module.base.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.zhb.wms2.module.base.model.dto.ProductCategorySortDTO;
 import com.zhb.wms2.module.base.model.entity.ProductCategory;
 import com.zhb.wms2.module.base.model.vo.ProductCategoryTreeVO;
 import java.util.List;
@@ -19,4 +20,6 @@ public interface ProductCategoryService extends IService<ProductCategory> {
     void updateByIdChecked(ProductCategory category);
 
     void removeByIdChecked(Long id);
+
+    void sortSameLevel(ProductCategorySortDTO dto);
 }

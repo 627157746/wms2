@@ -57,7 +57,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Transactional(rollbackFor = Exception.class)
     public void saveChecked(Product product) {
         normalizeProduct(product);
-        validateProduct(product, null);
+        validateProduct(product, null, null);
         if (!super.save(product)) {
             throw new BaseException("商品新增失败");
         }
@@ -207,7 +207,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             throw new BaseException("商品不存在");
         }
         normalizeProduct(product);
-        validateProduct(product, product.getId());
+        validateProduct(product, product.getId(), oldProduct);
         if (!updateById(product)) {
             throw new BaseException("商品不存在");
         }
@@ -221,6 +221,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .like(StrUtil.isNotBlank(query.getName()), Product::getName, query.getName())
                 .like(StrUtil.isNotBlank(query.getCode()), Product::getCode, query.getCode())
                 .like(StrUtil.isNotBlank(query.getBarcode()), Product::getBarcode, query.getBarcode())
+                .like(StrUtil.isNotBlank(query.getModel()), Product::getModel, query.getModel())
                 .eq(query.getCategoryId() != null, Product::getCategoryId, query.getCategoryId())
                 .eq(query.getUnitId() != null, Product::getUnitId, query.getUnitId())
                 .gt(Boolean.FALSE.equals(query.getIncludeZeroStock()), Product::getTotalStockQty, 0)
@@ -237,6 +238,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         vo.setName(product.getName());
         vo.setCode(product.getCode());
         vo.setBarcode(product.getBarcode());
+        vo.setModel(product.getModel());
         vo.setUnitId(product.getUnitId());
         vo.setCategoryId(product.getCategoryId());
         vo.setMinStock(product.getMinStock());
@@ -367,10 +369,20 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return location == null ? null : location.getSortOrder();
     }
 
-    private void validateProduct(Product product, Long excludeId) {
+    private void validateProduct(Product product, Long excludeId, Product currentProduct) {
         // 基础资料统一走字典缓存校验，避免每次保存/修改都分别查表。
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
-        validateCodeUnique(product.getCode(), excludeId);
+        if (currentProduct == null || !StrUtil.equals(product.getCode(), currentProduct.getCode())) {
+            validateCodeUnique(product.getCode(), excludeId);
+        }
+        if (StrUtil.isNotBlank(product.getBarcode())
+                && (currentProduct == null || !StrUtil.equals(product.getBarcode(), currentProduct.getBarcode()))) {
+            validateBarcodeUnique(product.getBarcode(), excludeId);
+        }
+        if (StrUtil.isNotBlank(product.getModel())
+                && (currentProduct == null || !StrUtil.equals(product.getModel(), currentProduct.getModel()))) {
+            validateModelUnique(product.getModel(), excludeId);
+        }
         if (!dictMap.getProductUnitMap().containsKey(product.getUnitId())) {
             throw new BaseException("商品单位不存在");
         }
@@ -392,7 +404,30 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
     }
 
+    private void validateBarcodeUnique(String barcode, Long excludeId) {
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
+                .eq(Product::getBarcode, barcode)
+                .ne(excludeId != null, Product::getId, excludeId);
+        if (count(wrapper) > 0) {
+            throw new BaseException("商品条形码已存在");
+        }
+    }
+
+    private void validateModelUnique(String model, Long excludeId) {
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
+                .eq(Product::getModel, model)
+                .ne(excludeId != null, Product::getId, excludeId);
+        if (count(wrapper) > 0) {
+            throw new BaseException("商品型号已存在");
+        }
+    }
+
     private void normalizeProduct(Product product) {
+        product.setName(StrUtil.trim(product.getName()));
+        product.setCode(StrUtil.trim(product.getCode()));
+        product.setBarcode(StrUtil.emptyToNull(StrUtil.trim(product.getBarcode())));
+        product.setModel(StrUtil.emptyToNull(StrUtil.trim(product.getModel())));
+        product.setRemark(StrUtil.emptyToNull(StrUtil.trim(product.getRemark())));
         if (product.getMinStock() == null) {
             product.setMinStock(0L);
         }

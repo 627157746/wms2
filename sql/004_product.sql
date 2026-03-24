@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS product (
   name VARCHAR(100) NOT NULL COMMENT '商品名称',
   code VARCHAR(50) NOT NULL COMMENT '商品编号',
   barcode VARCHAR(100) NULL COMMENT '条形码',
+  model VARCHAR(100) NULL COMMENT '型号',
   unit_id BIGINT NOT NULL COMMENT '单位ID',
   category_id BIGINT NULL COMMENT '分类ID',
   min_stock BIGINT NOT NULL DEFAULT 0 COMMENT '最低库存',
@@ -20,6 +21,8 @@ CREATE TABLE IF NOT EXISTS product (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商品';
 
 CREATE UNIQUE INDEX uk_product_code ON product(code, delete_flag);
+CREATE UNIQUE INDEX uk_product_barcode ON product(barcode, delete_flag);
+CREATE UNIQUE INDEX uk_product_model ON product(model, delete_flag);
 CREATE INDEX idx_product_name ON product(name);
 CREATE INDEX idx_product_category ON product(category_id);
 CREATE INDEX idx_product_unit ON product(unit_id);

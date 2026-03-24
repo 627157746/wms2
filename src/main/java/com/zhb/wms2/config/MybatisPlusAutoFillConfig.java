@@ -1,5 +1,6 @@
 package com.zhb.wms2.config;
 
+import cn.dev33.satoken.context.SaHolder;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import org.apache.ibatis.reflection.MetaObject;
@@ -35,12 +36,14 @@ public class MybatisPlusAutoFillConfig implements MetaObjectHandler {
     }
 
     private String getCurrentOperator() {
-        try {
-            if (StpUtil.isLogin()) {
-                return StpUtil.getLoginIdAsString();
+        if (SaHolder.getContext().isValid()) {
+            try {
+                if (StpUtil.isLogin()) {
+                    return StpUtil.getLoginIdAsString();
+                }
+            } catch (Exception ignored) {
+                // 忽略登录态获取异常，回退为系统账号
             }
-        } catch (Exception ignored) {
-            // 忽略登录态获取异常，回退为系统账号
         }
         return SYSTEM_OPERATOR;
     }

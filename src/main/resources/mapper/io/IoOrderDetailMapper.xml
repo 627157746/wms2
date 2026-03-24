@@ -2,6 +2,27 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zhb.wms2.module.io.mapper.IoOrderDetailMapper">
 
+    <select id="selectPageByProductId" resultType="com.zhb.wms2.module.io.model.entity.IoOrderDetail">
+        select d.*
+        from io_order_detail d
+                 inner join io_order o on o.id = d.order_id
+        where d.delete_flag = 0
+          and o.delete_flag = 0
+        <if test="query.productId != null">
+            and d.product_id = #{query.productId}
+        </if>
+        <if test="query.bizDateStart != null">
+            and o.biz_date <![CDATA[ >= ]]> #{query.bizDateStart}
+        </if>
+        <if test="query.bizDateEnd != null">
+            and o.biz_date <![CDATA[ <= ]]> #{query.bizDateEnd}
+        </if>
+        <if test="query.orderType != null">
+            and o.order_type = #{query.orderType}
+        </if>
+        order by d.id desc
+    </select>
+
     <select id="sumDeltaToDetailIdByProductId" resultType="java.lang.Long">
         select coalesce(sum(case
                                 when d.order_type = 1 then d.qty
@@ -9,6 +30,26 @@
             end), 0)
         from io_order_detail d
         where d.product_id = #{productId}
-          and d.id &lt;= #{detailId}
+          and d.id &lt; #{detailId}
+          and delete_flag = 0
+    </select>
+
+    <select id="selectCurrentStockQtyByDetailIds" resultType="com.zhb.wms2.module.io.model.dto.IoOrderDetailStockQtyDTO">
+        select t.id as detailId,
+               coalesce(p.initial_stock, 0) + coalesce(sum(case
+                                                              when d.order_type = 1 then d.qty
+                                                              else -d.qty
+                   end), 0) as currentStockQty
+        from io_order_detail t
+                 left join product p on p.id = t.product_id and p.delete_flag = 0
+                 left join io_order_detail d on d.product_id = t.product_id
+            and d.delete_flag = 0
+            and d.id <![CDATA[ <= ]]> t.id
+        where t.delete_flag = 0
+          and t.id in
+        <foreach collection="detailIds" item="detailId" open="(" separator="," close=")">
+            #{detailId}
+        </foreach>
+        group by t.id, p.initial_stock
     </select>
 </mapper>

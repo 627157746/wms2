@@ -22,6 +22,7 @@ import com.zhb.wms2.module.io.mapper.IoOrderDetailMapper;
 import com.zhb.wms2.module.io.mapper.IoOrderMapper;
 import com.zhb.wms2.module.io.model.dto.IoOrderCreateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderDetailDTO;
+import com.zhb.wms2.module.io.model.dto.IoOrderDetailStockQtyDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderGenerateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderUpdateDTO;
 import com.zhb.wms2.module.io.model.entity.IoApply;
@@ -126,16 +127,12 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     @Override
     public IPage<StockIoDetailVO> pageDetailByProductId(StockIoDetailQuery query) {
         Long productId = query.getProductId();
-        Product product = productMapper.selectById(productId);
-        if (product == null) {
+        if (productId != null && productMapper.selectById(productId) == null) {
             throw new BaseException("商品不存在");
         }
 
-        IPage<IoOrderDetail> detailPage = ioOrderDetailService.page(
-                new Page<>(query.getCurrent(), query.getSize()),
-                new LambdaQueryWrapper<IoOrderDetail>()
-                        .eq(IoOrderDetail::getProductId, productId)
-                        .orderByDesc(IoOrderDetail::getId));
+        IPage<IoOrderDetail> detailPage = ioOrderDetailMapper.selectPageByProductId(
+                new Page<>(query.getCurrent(), query.getSize()), query);
         List<IoOrderDetail> detailList = detailPage.getRecords();
         if (detailList == null || detailList.isEmpty()) {
             return detailPage.convert(detail -> new StockIoDetailVO());
@@ -149,40 +146,48 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 : listByIds(orderIds).stream()
                 .collect(Collectors.toMap(IoOrder::getId, Function.identity(),
                         (left, right) -> left, LinkedHashMap::new));
+        Set<Long> productIds = detailList.stream()
+                .map(IoOrderDetail::getProductId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Map<Long, Product> productMap = productIds.isEmpty() ? Map.of()
+                : productMapper.selectByIds(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity(),
+                        (left, right) -> left, LinkedHashMap::new));
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
         Map<Long, Deliveryman> deliverymanMap = dictMap.getDeliverymanMap() == null
                 ? Map.of() : dictMap.getDeliverymanMap();
         Map<Long, Customer> customerMap = dictMap.getCustomerMap() == null
                 ? Map.of() : dictMap.getCustomerMap();
-        IoOrderDetail firstRow = detailList.getLast();
-        long detailDeltaSum = Optional.ofNullable(
-                        ioOrderDetailMapper.sumDeltaToDetailIdByProductId(productId, firstRow.getId()))
-                .orElse(0L);
-        long initialStockQty = product.getInitialStock() == null ? 0L : product.getInitialStock();
-        long earliestStockQty = initialStockQty + detailDeltaSum;
-        Map<Long, Long> stockQtyMap = new HashMap<>(detailList.size());
-        for (int i = detailList.size() - 1; i >= 0; i--) {
-            IoOrderDetail detail = detailList.get(i);
-            IoOrder ioOrder = orderMap.get(detail.getOrderId());
-            if (ioOrder == null) {
-                continue;
-            }
-            stockQtyMap.put(detail.getId(), earliestStockQty);
-            long delta = IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType())
-                    ? (detail.getQty() == null ? 0L : detail.getQty())
-                    : -(detail.getQty() == null ? 0L : detail.getQty());
-            earliestStockQty += delta;
-        }
+        Map<Long, Long> stockQtyMap = buildCurrentStockQtyMap(detailList);
         return detailPage.convert(detail -> {
             IoOrder ioOrder = orderMap.get(detail.getOrderId());
             if (ioOrder == null) {
                 return new StockIoDetailVO();
             }
+            Product product = productMap.get(detail.getProductId());
             return buildStockIoDetailVO(ioOrder, detail, product,
                     deliverymanMap.get(ioOrder.getDeliverymanId()),
                     customerMap.get(ioOrder.getCustomerId()),
                     stockQtyMap.getOrDefault(detail.getId(), 0L));
         });
+    }
+
+    private Map<Long, Long> buildCurrentStockQtyMap(List<IoOrderDetail> detailList) {
+        if (detailList == null || detailList.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Long> detailIds = detailList.stream()
+                .map(IoOrderDetail::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (detailIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return ioOrderDetailMapper.selectCurrentStockQtyByDetailIds(detailIds).stream()
+                .collect(Collectors.toMap(IoOrderDetailStockQtyDTO::getDetailId,
+                        item -> item.getCurrentStockQty() == null ? 0L : item.getCurrentStockQty(),
+                        (left, right) -> left, LinkedHashMap::new));
     }
 
     @Override

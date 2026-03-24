@@ -8,16 +8,22 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.mapper.ProductCategoryMapper;
+import com.zhb.wms2.module.base.model.dto.ProductCategorySortDTO;
 import com.zhb.wms2.module.base.model.entity.ProductCategory;
 import com.zhb.wms2.module.base.model.vo.ProductCategoryTreeVO;
 import com.zhb.wms2.module.base.service.ProductCategoryService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
 import com.zhb.wms2.module.product.mapper.ProductMapper;
 import com.zhb.wms2.module.product.model.entity.Product;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @Author zhb
@@ -83,6 +89,49 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
         }
         if (!removeById(id)) {
             throw new BaseException("商品分类不存在");
+        }
+        baseDictMapStore.clearProductCategoryMap();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void sortSameLevel(ProductCategorySortDTO dto) {
+        Long parentId = dto.getParentId();
+        List<Long> categoryIdList = dto.getCategoryIdList();
+        if (CollUtil.isEmpty(categoryIdList)) {
+            throw new BaseException("分类ID列表不能为空");
+        }
+        if (new HashSet<>(categoryIdList).size() != categoryIdList.size()) {
+            throw new BaseException("分类ID不能重复");
+        }
+        if (parentId > 0 && getById(parentId) == null) {
+            throw new BaseException("上级分类不存在");
+        }
+
+        List<ProductCategory> siblingList = list(new LambdaQueryWrapper<ProductCategory>()
+                .eq(ProductCategory::getParentId, parentId)
+                .select(ProductCategory::getId));
+        if (siblingList.size() != categoryIdList.size()) {
+            throw new BaseException("请提交同级全部分类进行排序");
+        }
+
+        Set<Long> siblingIdSet = siblingList.stream()
+                .map(ProductCategory::getId)
+                .collect(Collectors.toSet());
+        if (!siblingIdSet.equals(new HashSet<>(categoryIdList))) {
+            throw new BaseException("存在不属于当前同级的分类");
+        }
+
+        List<ProductCategory> updateList = IntStream.range(0, categoryIdList.size())
+                .mapToObj(index -> {
+                    ProductCategory category = new ProductCategory();
+                    category.setId(categoryIdList.get(index));
+                    category.setSortOrder(index + 1);
+                    return category;
+                })
+                .toList();
+        if (!updateBatchById(updateList)) {
+            throw new BaseException("商品分类排序失败");
         }
         baseDictMapStore.clearProductCategoryMap();
     }

@@ -62,6 +62,13 @@ public class Product extends BaseModel implements Serializable {
     private String barcode;
 
     /**
+     * 型号
+     */
+    @TableField(value = "model")
+    @Schema(description="型号")
+    private String model;
+
+    /**
      * 单位ID
      */
     @TableField(value = "unit_id")

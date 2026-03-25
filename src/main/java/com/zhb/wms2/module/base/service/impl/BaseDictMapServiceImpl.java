@@ -7,6 +7,7 @@ import com.zhb.wms2.module.base.mapper.IoTypeMapper;
 import com.zhb.wms2.module.base.mapper.ProductCategoryMapper;
 import com.zhb.wms2.module.base.mapper.ProductLocationMapper;
 import com.zhb.wms2.module.base.mapper.ProductUnitMapper;
+import com.zhb.wms2.module.base.mapper.SalesmanMapper;
 import com.zhb.wms2.module.base.model.dto.BaseDictMapDTO;
 import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
@@ -14,6 +15,7 @@ import com.zhb.wms2.module.base.model.entity.IoType;
 import com.zhb.wms2.module.base.model.entity.ProductCategory;
 import com.zhb.wms2.module.base.model.entity.ProductLocation;
 import com.zhb.wms2.module.base.model.entity.ProductUnit;
+import com.zhb.wms2.module.base.model.entity.Salesman;
 import com.zhb.wms2.module.base.service.BaseDictMapService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
 import java.util.Collections;
@@ -36,6 +38,7 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
 
     private final CustomerMapper customerMapper;
     private final DeliverymanMapper deliverymanMapper;
+    private final SalesmanMapper salesmanMapper;
     private final IoTypeMapper ioTypeMapper;
     private final ProductCategoryMapper productCategoryMapper;
     private final ProductLocationMapper productLocationMapper;
@@ -47,6 +50,7 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
         BaseDictMapDTO dto = new BaseDictMapDTO();
         dto.setCustomerMap(getCustomerMap());
         dto.setDeliverymanMap(getDeliverymanMap());
+        dto.setSalesmanMap(getSalesmanMap());
         dto.setIoTypeMap(getIoTypeMap());
         dto.setProductCategoryMap(getProductCategoryMap());
         dto.setProductLocationMap(getProductLocationMap());
@@ -83,6 +87,22 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
                 baseDictMapStore.setDeliverymanMap(deliverymanMap);
             }
             return deliverymanMap;
+        }
+    }
+
+    private Map<Long, Salesman> getSalesmanMap() {
+        Map<Long, Salesman> salesmanMap = baseDictMapStore.getSalesmanMap();
+        if (salesmanMap != null) {
+            return salesmanMap;
+        }
+        synchronized (baseDictMapStore) {
+            salesmanMap = baseDictMapStore.getSalesmanMap();
+            if (salesmanMap == null) {
+                salesmanMap = buildMap(salesmanMapper.selectList(new LambdaQueryWrapper<Salesman>()
+                        .orderByDesc(Salesman::getId)), Salesman::getId);
+                baseDictMapStore.setSalesmanMap(salesmanMap);
+            }
+            return salesmanMap;
         }
     }
 

@@ -15,15 +15,16 @@ import com.zhb.wms2.module.base.service.ProductCategoryService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
 import com.zhb.wms2.module.product.mapper.ProductMapper;
 import com.zhb.wms2.module.product.model.entity.Product;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @Author zhb
@@ -52,6 +53,9 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
         List<ProductCategory> categoryList = list(new LambdaQueryWrapper<ProductCategory>()
                 .orderByAsc(ProductCategory::getSortOrder)
                 .orderByAsc(ProductCategory::getId));
+        if (categoryList.isEmpty()){
+            return List.of();
+        }
         TreeNodeConfig config = new TreeNodeConfig().setWeightKey("sortOrder");
         List<Tree<Long>> treeList = TreeUtil.build(categoryList, 0L, config, (category, tree) -> {
             tree.setId(category.getId());

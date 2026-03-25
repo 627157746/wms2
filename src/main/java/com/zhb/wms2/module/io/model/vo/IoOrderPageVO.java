@@ -2,6 +2,7 @@ package com.zhb.wms2.module.io.model.vo;
 
 import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
+import com.zhb.wms2.module.base.model.entity.Salesman;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -26,6 +27,9 @@ public class IoOrderPageVO extends IoOrder {
 
     @Schema(description = "客户信息")
     private Customer customer;
+
+    @Schema(description = "业务员信息")
+    private Salesman salesman;
 
     @Schema(description = "出入库类型名称")
     private String ioTypeName;

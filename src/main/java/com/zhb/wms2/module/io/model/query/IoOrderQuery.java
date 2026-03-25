@@ -29,6 +29,9 @@ public class IoOrderQuery extends BaseQuery {
     @Schema(description = "客户ID")
     private Long customerId;
 
+    @Schema(description = "业务员ID")
+    private Long salesmanId;
+
     @Schema(description = "出入库类型ID")
     private Long ioTypeId;
 

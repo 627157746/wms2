@@ -16,6 +16,7 @@ import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
 import com.zhb.wms2.module.base.model.entity.IoType;
 import com.zhb.wms2.module.base.model.entity.ProductLocation;
+import com.zhb.wms2.module.base.model.entity.Salesman;
 import com.zhb.wms2.module.base.service.BaseDictMapService;
 import com.zhb.wms2.module.io.mapper.IoApplyMapper;
 import com.zhb.wms2.module.io.mapper.IoOrderDetailMapper;
@@ -85,6 +86,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 ? Map.of() : dictMap.getDeliverymanMap();
         Map<Long, Customer> customerMap = dictMap.getCustomerMap() == null
                 ? Map.of() : dictMap.getCustomerMap();
+        Map<Long, Salesman> salesmanMap = dictMap.getSalesmanMap() == null
+                ? Map.of() : dictMap.getSalesmanMap();
         Map<Long, IoType> ioTypeMap = dictMap.getIoTypeMap() == null
                 ? Map.of() : dictMap.getIoTypeMap();
         Set<Long> applyIds = recordList.stream()
@@ -97,7 +100,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .collect(Collectors.toMap(IoApply::getId, IoApply::getApplyNo,
                         (left, right) -> left, LinkedHashMap::new));
         Map<Long, List<IoOrderDetailVO>> detailMap = buildDetailMap(recordList.stream().map(IoOrder::getId).toList());
-        return page.convert(ioOrder -> buildPageVO(ioOrder, deliverymanMap, customerMap, ioTypeMap, applyNoMap,
+        return page.convert(ioOrder -> buildPageVO(ioOrder, deliverymanMap, customerMap, salesmanMap, ioTypeMap, applyNoMap,
                 detailMap.get(ioOrder.getId())));
     }
 
@@ -113,6 +116,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 ? Map.of() : dictMap.getDeliverymanMap();
         Map<Long, Customer> customerMap = dictMap.getCustomerMap() == null
                 ? Map.of() : dictMap.getCustomerMap();
+        Map<Long, Salesman> salesmanMap = dictMap.getSalesmanMap() == null
+                ? Map.of() : dictMap.getSalesmanMap();
         Map<Long, IoType> ioTypeMap = dictMap.getIoTypeMap() == null
                 ? Map.of() : dictMap.getIoTypeMap();
         Map<Long, String> applyNoMap = ioOrder.getApplyId() == null
@@ -121,7 +126,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .collect(Collectors.toMap(IoApply::getId, IoApply::getApplyNo,
                         (left, right) -> left, LinkedHashMap::new));
         Map<Long, List<IoOrderDetailVO>> detailMap = buildDetailMap(List.of(id));
-        return buildPageVO(ioOrder, deliverymanMap, customerMap, ioTypeMap, applyNoMap, detailMap.get(id));
+        return buildPageVO(ioOrder, deliverymanMap, customerMap, salesmanMap, ioTypeMap, applyNoMap, detailMap.get(id));
     }
 
     @Override
@@ -199,7 +204,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
         validateApplyCanGenerate(ioApply);
         validateHeaderRefs(ioApply.getOrderType(), ioApply.getDeliverymanId(), ioApply.getCustomerId(),
-                ioApply.getIoTypeId());
+                ioApply.getSalesmanId(), ioApply.getIoTypeId());
         List<IoApplyDetail> applyDetailList = ioApplyDetailService.list(
                 new LambdaQueryWrapper<IoApplyDetail>().eq(IoApplyDetail::getApplyId, applyId));
         if (applyDetailList.isEmpty()) {
@@ -211,7 +216,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         validateApplyGenerateDetails(ioApply.getOrderType(), applyDetailList, detailDTOList);
 
         IoOrder ioOrder = createOrder(ioApply.getOrderType(), ioApply.getId(), dto.getBizDate(),
-                ioApply.getDeliverymanId(), ioApply.getCustomerId(), ioApply.getIoTypeId(), dto.getRemark(),
+                ioApply.getDeliverymanId(), ioApply.getCustomerId(), ioApply.getSalesmanId(),
+                ioApply.getIoTypeId(), dto.getRemark(),
                 detailDTOList);
         ioApply.setIoStatus(IoStatusEnum.DONE.getCode());
         ioApplyMapper.updateById(ioApply);
@@ -221,11 +227,13 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long saveOrder(IoOrderCreateDTO dto) {
-        validateHeaderRefs(dto.getOrderType(), dto.getDeliverymanId(), dto.getCustomerId(), dto.getIoTypeId());
+        validateHeaderRefs(dto.getOrderType(), dto.getDeliverymanId(), dto.getCustomerId(), dto.getSalesmanId(),
+                dto.getIoTypeId());
         List<IoOrderDetailDTO> detailDTOList = dto.getDetailList();
         validateDetailRefs(detailDTOList);
         return createOrder(dto.getOrderType(), null, dto.getBizDate(), dto.getDeliverymanId(),
                 IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getCustomerId() : null,
+                IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getSalesmanId() : null,
                 dto.getIoTypeId(), dto.getRemark(), detailDTOList).getId();
     }
 
@@ -237,7 +245,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             throw new BaseException("出入库单不存在");
         }
 
-        validateHeaderRefs(ioOrder.getOrderType(), dto.getDeliverymanId(), dto.getCustomerId(), dto.getIoTypeId());
+        validateHeaderRefs(ioOrder.getOrderType(), dto.getDeliverymanId(), dto.getCustomerId(), dto.getSalesmanId(),
+                dto.getIoTypeId());
         List<IoOrderDetailDTO> newDetailDTOList = dto.getDetailList();
         validateDetailRefs(newDetailDTOList);
 
@@ -250,6 +259,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         ioOrder.setIoTypeId(dto.getIoTypeId());
         ioOrder.setRemark(dto.getRemark());
         ioOrder.setCustomerId(IoBizTypeEnum.OUTBOUND.matches(ioOrder.getOrderType()) ? dto.getCustomerId() : null);
+        ioOrder.setSalesmanId(IoBizTypeEnum.OUTBOUND.matches(ioOrder.getOrderType()) ? dto.getSalesmanId() : null);
         if (IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType())) {
             ioOrder.setPickingStatus(PickingStatusEnum.UNPICKED.getCode());
         }
@@ -302,7 +312,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     }
 
     private IoOrder createOrder(Integer orderType, Long applyId, java.time.LocalDate bizDate, Long deliverymanId,
-                                Long customerId, Long ioTypeId, String remark, List<IoOrderDetailDTO> detailDTOList) {
+                                Long customerId, Long salesmanId, Long ioTypeId, String remark,
+                                List<IoOrderDetailDTO> detailDTOList) {
         IoOrder ioOrder = new IoOrder();
         ioOrder.setOrderNo(generateOrderNo(orderType));
         ioOrder.setOrderType(orderType);
@@ -310,6 +321,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         ioOrder.setBizDate(bizDate);
         ioOrder.setDeliverymanId(deliverymanId);
         ioOrder.setCustomerId(customerId);
+        ioOrder.setSalesmanId(salesmanId);
         ioOrder.setIoTypeId(ioTypeId);
         ioOrder.setRemark(remark);
         ioOrder.setPickingStatus(PickingStatusEnum.UNPICKED.getCode());
@@ -347,7 +359,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
-    private void validateHeaderRefs(Integer orderType, Long deliverymanId, Long customerId, Long ioTypeId) {
+    private void validateHeaderRefs(Integer orderType, Long deliverymanId, Long customerId, Long salesmanId,
+                                    Long ioTypeId) {
         validateDeliveryman(orderType, deliverymanId);
         validateIoType(orderType, ioTypeId);
         if (IoBizTypeEnum.OUTBOUND.matches(orderType)) {
@@ -355,6 +368,10 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 throw new BaseException("出库单客户不能为空");
             }
             validateCustomer(customerId);
+            if (salesmanId == null) {
+                throw new BaseException("出库单业务员不能为空");
+            }
+            validateSalesman(salesmanId);
         }
     }
 
@@ -381,6 +398,16 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 : dictMap.getCustomerMap().get(customerId);
         if (customer == null) {
             throw new BaseException("客户不存在");
+        }
+    }
+
+    private void validateSalesman(Long salesmanId) {
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Salesman salesman = dictMap.getSalesmanMap() == null
+                ? null
+                : dictMap.getSalesmanMap().get(salesmanId);
+        if (salesman == null) {
+            throw new BaseException("业务员不存在");
         }
     }
 
@@ -576,6 +603,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .le(query.getBizDateEnd() != null, IoOrder::getBizDate, query.getBizDateEnd())
                 .eq(query.getDeliverymanId() != null, IoOrder::getDeliverymanId, query.getDeliverymanId())
                 .eq(query.getCustomerId() != null, IoOrder::getCustomerId, query.getCustomerId())
+                .eq(query.getSalesmanId() != null, IoOrder::getSalesmanId, query.getSalesmanId())
                 .eq(query.getIoTypeId() != null, IoOrder::getIoTypeId, query.getIoTypeId())
                 .eq(query.getApplyId() != null, IoOrder::getApplyId, query.getApplyId())
                 .eq(query.getPickingStatus() != null, IoOrder::getPickingStatus, query.getPickingStatus())
@@ -639,7 +667,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     }
 
     private IoOrderPageVO buildPageVO(IoOrder ioOrder, Map<Long, Deliveryman> deliverymanMap,
-                                      Map<Long, Customer> customerMap, Map<Long, IoType> ioTypeMap,
+                                      Map<Long, Customer> customerMap, Map<Long, Salesman> salesmanMap,
+                                      Map<Long, IoType> ioTypeMap,
                                       Map<Long, String> applyNoMap, List<IoOrderDetailVO> detailList) {
         IoOrderPageVO vo = new IoOrderPageVO();
         vo.setId(ioOrder.getId());
@@ -649,6 +678,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         vo.setBizDate(ioOrder.getBizDate());
         vo.setDeliverymanId(ioOrder.getDeliverymanId());
         vo.setCustomerId(ioOrder.getCustomerId());
+        vo.setSalesmanId(ioOrder.getSalesmanId());
         vo.setIoTypeId(ioOrder.getIoTypeId());
         vo.setRemark(ioOrder.getRemark());
         vo.setPickingStatus(ioOrder.getPickingStatus());
@@ -662,6 +692,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         vo.setDeliveryman(deliveryman);
         Customer customer = customerMap.get(ioOrder.getCustomerId());
         vo.setCustomer(customer);
+        Salesman salesman = salesmanMap.get(ioOrder.getSalesmanId());
+        vo.setSalesman(salesman);
         IoType ioType = ioTypeMap.get(ioOrder.getIoTypeId());
         vo.setIoTypeName(ioType == null ? null : ioType.getName());
         vo.setPickingStatusName(buildPickingStatusName(ioOrder));

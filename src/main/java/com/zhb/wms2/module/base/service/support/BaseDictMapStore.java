@@ -22,6 +22,8 @@ public class BaseDictMapStore {
 
     private volatile Map<Long, Deliveryman> deliverymanMap;
 
+    private volatile Map<Long, Salesman> salesmanMap;
+
     private volatile Map<Long, IoType> ioTypeMap;
 
     private volatile Map<Long, ProductCategory> productCategoryMap;
@@ -36,6 +38,10 @@ public class BaseDictMapStore {
 
     public void clearDeliverymanMap() {
         this.deliverymanMap = null;
+    }
+
+    public void clearSalesmanMap() {
+        this.salesmanMap = null;
     }
 
     public void clearIoTypeMap() {

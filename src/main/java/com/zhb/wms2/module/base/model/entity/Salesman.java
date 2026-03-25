@@ -1,0 +1,55 @@
+package com.zhb.wms2.module.base.model.entity;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.zhb.wms2.common.model.BaseModel;
+import com.zhb.wms2.common.validated.Update;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import java.io.Serializable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+/**
+ * 业务员
+ */
+@Schema(description = "业务员")
+@Data
+@EqualsAndHashCode(callSuper = true)
+@TableName(value = "salesman")
+public class Salesman extends BaseModel implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    @TableId(value = "id", type = IdType.AUTO)
+    @Schema(description = "主键ID")
+    @NotNull(groups = Update.class, message = "ID不能为空")
+    private Long id;
+
+    @TableField(value = "`name`")
+    @Schema(description = "名称")
+    @NotBlank(message = "业务员名称不能为空")
+    private String name;
+
+    @TableField(value = "phone")
+    @Schema(description = "手机")
+    private String phone;
+
+    @TableField(value = "tel")
+    @Schema(description = "座机")
+    private String tel;
+
+    @TableField(value = "wechat")
+    @Schema(description = "微信号")
+    private String wechat;
+
+    @TableField(value = "address")
+    @Schema(description = "地址")
+    private String address;
+
+    @TableField(value = "remark")
+    @Schema(description = "备注")
+    private String remark;
+}

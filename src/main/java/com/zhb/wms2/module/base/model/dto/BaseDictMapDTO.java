@@ -6,6 +6,7 @@ import com.zhb.wms2.module.base.model.entity.IoType;
 import com.zhb.wms2.module.base.model.entity.ProductCategory;
 import com.zhb.wms2.module.base.model.entity.ProductLocation;
 import com.zhb.wms2.module.base.model.entity.ProductUnit;
+import com.zhb.wms2.module.base.model.entity.Salesman;
 import java.util.Map;
 import lombok.Data;
 
@@ -21,6 +22,8 @@ public class BaseDictMapDTO {
     private Map<Long, Customer> customerMap;
 
     private Map<Long, Deliveryman> deliverymanMap;
+
+    private Map<Long, Salesman> salesmanMap;
 
     private Map<Long, IoType> ioTypeMap;
 

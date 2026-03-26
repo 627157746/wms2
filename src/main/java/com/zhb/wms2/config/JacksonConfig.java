@@ -62,7 +62,7 @@ public class JacksonConfig {
 
         // 其他通用配置
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
 
         return mapper;
     }

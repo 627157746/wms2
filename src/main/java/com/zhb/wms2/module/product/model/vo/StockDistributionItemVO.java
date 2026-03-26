@@ -16,6 +16,9 @@ public class StockDistributionItemVO {
     @Schema(description = "商品名称")
     private String productName;
 
+    @Schema(description = "商品型号")
+    private String model;
+
     @Schema(description = "商品单位ID")
     private Long unitId;
 

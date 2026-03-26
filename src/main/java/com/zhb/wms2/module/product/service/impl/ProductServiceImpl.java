@@ -307,6 +307,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 product.getId(),
                 product.getCode(),
                 product.getName(),
+                product.getModel(),
                 product.getUnitId(),
                 productUnit == null ? null : productUnit.getName(),
                 locationId,
@@ -347,6 +348,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         item.setProductId(row.getProductId());
         item.setProductCode(row.getProductCode());
         item.setProductName(row.getProductName());
+        item.setModel(row.getModel());
         item.setUnitId(row.getUnitId());
         item.setUnitName(row.getUnitName());
         item.setQty(row.getQty());
@@ -498,6 +500,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         private final Long productId;
         private final String productCode;
         private final String productName;
+        private final String model;
         private final Long unitId;
         private final String unitName;
         private final Long locationId;
@@ -505,12 +508,13 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         private final Integer locationSortOrder;
         private final Long qty;
 
-        private DistributionRow(Long productId, String productCode, String productName,
+        private DistributionRow(Long productId, String productCode, String productName, String model,
                                 Long unitId, String unitName, Long locationId,
                                 String locationCode, Integer locationSortOrder, Long qty) {
             this.productId = productId;
             this.productCode = productCode;
             this.productName = productName;
+            this.model = model;
             this.unitId = unitId;
             this.unitName = unitName;
             this.locationId = locationId;
@@ -529,6 +533,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
         public String getProductName() {
             return productName;
+        }
+
+        public String getModel() {
+            return model;
         }
 
         public Long getUnitId() {

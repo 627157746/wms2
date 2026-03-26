@@ -70,6 +70,17 @@ public enum ScopeEnum {
      * 判断适用范围是否支持指定业务类型。
      */
     public static boolean supportsBizType(Integer scope, Integer bizType) {
-        return COMMON.matches(scope) || Objects.equals(scope, bizType);
+        ScopeEnum scopeEnum = fromCode(scope);
+        IoBizTypeEnum bizTypeEnum = IoBizTypeEnum.fromCode(bizType);
+        if (scopeEnum == null || bizTypeEnum == null) {
+            return false;
+        }
+        if (COMMON == scopeEnum) {
+            return true;
+        }
+        if (INBOUND == scopeEnum) {
+            return IoBizTypeEnum.INBOUND == bizTypeEnum;
+        }
+        return IoBizTypeEnum.OUTBOUND == bizTypeEnum;
     }
 }

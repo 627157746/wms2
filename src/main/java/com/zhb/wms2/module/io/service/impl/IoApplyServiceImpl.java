@@ -277,10 +277,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         if (deliveryman == null) {
             throw new BaseException("送货员不存在");
         }
-        Integer expectedScope = IoBizTypeEnum.INBOUND.matches(orderType)
-                ? ScopeEnum.INBOUND.getCode()
-                : ScopeEnum.OUTBOUND.getCode();
-        if (!ScopeEnum.supportsBizType(deliveryman.getScope(), expectedScope)) {
+        if (!ScopeEnum.supportsBizType(deliveryman.getScope(), orderType)) {
             throw new BaseException("送货员不适用于当前单据类型");
         }
     }

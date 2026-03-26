@@ -1,5 +1,6 @@
 package com.zhb.wms2.common.enums;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -51,12 +52,27 @@ public enum IoStatusEnum {
     }
 
     /**
+     * 根据编码获取对应枚举。
+     */
+    public static IoStatusEnum fromCode(Integer code) {
+        return Arrays.stream(values())
+                .filter(item -> item.matches(code))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
      * 根据单据类型返回申请单场景下的状态描述。
      */
     public static String getApplyDesc(Integer code, Integer orderType) {
-        if (DONE.matches(code)) {
-            return IoBizTypeEnum.INBOUND.matches(orderType) ? "已入库" : "已出库";
+        IoStatusEnum statusEnum = fromCode(code);
+        IoBizTypeEnum bizTypeEnum = IoBizTypeEnum.fromCode(orderType);
+        if (statusEnum == null || bizTypeEnum == null) {
+            return null;
         }
-        return IoBizTypeEnum.INBOUND.matches(orderType) ? "未入库" : "未出库";
+        if (DONE == statusEnum) {
+            return IoBizTypeEnum.INBOUND == bizTypeEnum ? "已入库" : "已出库";
+        }
+        return IoBizTypeEnum.INBOUND == bizTypeEnum ? "未入库" : "未出库";
     }
 }

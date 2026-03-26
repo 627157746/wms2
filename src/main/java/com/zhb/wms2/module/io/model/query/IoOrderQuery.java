@@ -3,6 +3,8 @@ package com.zhb.wms2.module.io.model.query;
 import com.zhb.wms2.common.model.BaseQuery;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -27,6 +29,8 @@ public class IoOrderQuery extends BaseQuery {
      * 单据类型。
      */
     @Schema(description = "单据类型：1-入库 2-出库")
+    @Min(value = 1, message = "单据类型不正确")
+    @Max(value = 2, message = "单据类型不正确")
     private Integer orderType;
 
     /**
@@ -75,5 +79,7 @@ public class IoOrderQuery extends BaseQuery {
      * 拣货状态。
      */
     @Schema(description = "拣货状态：0-未拣 1-已拣")
+    @Min(value = 0, message = "拣货状态不正确")
+    @Max(value = 1, message = "拣货状态不正确")
     private Integer pickingStatus;
 }

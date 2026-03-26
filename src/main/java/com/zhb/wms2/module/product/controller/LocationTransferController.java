@@ -1,6 +1,7 @@
 package com.zhb.wms2.module.product.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.zhb.wms2.common.lock.MethodLock;
 import com.zhb.wms2.common.model.R;
 import com.zhb.wms2.module.product.model.dto.LocationTransferCreateDTO;
 import com.zhb.wms2.module.product.model.query.LocationTransferQuery;
@@ -28,6 +29,7 @@ public class LocationTransferController {
 
     @PostMapping
     @Operation(summary = "发起转货位")
+    @MethodLock(name = "product:stock", key = "#p0.productId")
     public R<Long> create(
             @Parameter(description = "转货位参数", required = true)
             @RequestBody @Validated LocationTransferCreateDTO dto) {

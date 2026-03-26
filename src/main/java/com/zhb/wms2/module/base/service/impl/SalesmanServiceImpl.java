@@ -11,6 +11,10 @@ import com.zhb.wms2.module.base.model.entity.Salesman;
 import com.zhb.wms2.module.base.model.query.SalesmanQuery;
 import com.zhb.wms2.module.base.service.SalesmanService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
+import com.zhb.wms2.module.io.model.entity.IoApply;
+import com.zhb.wms2.module.io.model.entity.IoOrder;
+import com.zhb.wms2.module.io.service.IoApplyService;
+import com.zhb.wms2.module.io.service.IoOrderService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +23,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class SalesmanServiceImpl extends ServiceImpl<SalesmanMapper, Salesman> implements SalesmanService {
 
+    private final IoApplyService ioApplyService;
+    private final IoOrderService ioOrderService;
     private final BaseDictMapStore baseDictMapStore;
 
     @Override
@@ -49,6 +55,16 @@ public class SalesmanServiceImpl extends ServiceImpl<SalesmanMapper, Salesman> i
 
     @Override
     public void removeByIdChecked(Long id) {
+        long applyCount = ioApplyService.count(
+                new LambdaQueryWrapper<IoApply>().eq(IoApply::getSalesmanId, id));
+        if (applyCount > 0) {
+            throw new BaseException("该业务员已被出入库申请使用，无法删除");
+        }
+        long orderCount = ioOrderService.count(
+                new LambdaQueryWrapper<IoOrder>().eq(IoOrder::getSalesmanId, id));
+        if (orderCount > 0) {
+            throw new BaseException("该业务员已被出入库单使用，无法删除");
+        }
         if (!removeById(id)) {
             throw new BaseException("业务员不存在");
         }

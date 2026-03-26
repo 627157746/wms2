@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zhb.wms2.common.enums.IoBizTypeEnum;
 import com.zhb.wms2.common.enums.ScopeEnum;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.mapper.IoTypeMapper;
@@ -69,22 +68,11 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
         if (ioType == null) {
             throw new BaseException("出入库类型不存在");
         }
-        if (IoBizTypeEnum.INBOUND.matches(ioType.getScope())) {
-            long inboundApplyCount = ioApplyService.count(
-                    new LambdaQueryWrapper<IoApply>()
-                            .eq(IoApply::getIoTypeId, id)
-                            .eq(IoApply::getOrderType, IoBizTypeEnum.INBOUND.getCode()));
-            if (inboundApplyCount > 0) {
-                throw new BaseException("该出入库类型已被入库申请使用，无法删除");
-            }
-        } else {
-            long outboundApplyCount = ioApplyService.count(
-                    new LambdaQueryWrapper<IoApply>()
-                            .eq(IoApply::getIoTypeId, id)
-                            .eq(IoApply::getOrderType, IoBizTypeEnum.OUTBOUND.getCode()));
-            if (outboundApplyCount > 0) {
-                throw new BaseException("该出入库类型已被出库申请使用，无法删除");
-            }
+        long applyCount = ioApplyService.count(
+                new LambdaQueryWrapper<IoApply>()
+                        .eq(IoApply::getIoTypeId, id));
+        if (applyCount > 0) {
+            throw new BaseException("该出入库类型已被出入库申请使用，无法删除");
         }
         long orderCount = ioOrderService.count(
                 new LambdaQueryWrapper<IoOrder>().eq(IoOrder::getIoTypeId, id));

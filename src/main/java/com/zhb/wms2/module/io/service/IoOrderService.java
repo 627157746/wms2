@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.zhb.wms2.module.product.model.query.StockIoDetailQuery;
 import com.zhb.wms2.module.product.model.vo.StockIoDetailVO;
 import com.zhb.wms2.module.io.model.dto.IoOrderCreateDTO;
+import com.zhb.wms2.module.io.model.dto.IoOrderDetailLocationUpdateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderGenerateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderUpdateDTO;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
@@ -24,6 +25,8 @@ public interface IoOrderService extends IService<IoOrder> {
     Long saveOrder(IoOrderCreateDTO dto);
 
     void updateOrder(IoOrderUpdateDTO dto);
+
+    void updateDetailLocation(IoOrderDetailLocationUpdateDTO dto);
 
     void pickById(Long id);
 

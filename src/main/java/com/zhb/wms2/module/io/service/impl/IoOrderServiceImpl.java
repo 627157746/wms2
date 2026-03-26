@@ -23,6 +23,7 @@ import com.zhb.wms2.module.io.mapper.IoOrderDetailMapper;
 import com.zhb.wms2.module.io.mapper.IoOrderMapper;
 import com.zhb.wms2.module.io.model.dto.IoOrderCreateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderDetailDTO;
+import com.zhb.wms2.module.io.model.dto.IoOrderDetailLocationUpdateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderDetailStockQtyDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderGenerateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderUpdateDTO;
@@ -233,7 +234,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         validateDetailRefs(detailDTOList);
         return createOrder(dto.getOrderType(), null, dto.getBizDate(), dto.getDeliverymanId(),
                 IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getCustomerId() : null,
-                IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getSalesmanId() : null,
+                dto.getSalesmanId(),
                 dto.getIoTypeId(), dto.getRemark(), detailDTOList).getId();
     }
 
@@ -252,14 +253,17 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
 
         List<IoOrderDetail> oldDetailList = ioOrderDetailService.list(
                 new LambdaQueryWrapper<IoOrderDetail>().eq(IoOrderDetail::getOrderId, dto.getId()));
-        rollbackOrderStock(ioOrder, oldDetailList, "修改");
+        boolean stockChanged = hasStockChange(oldDetailList, newDetailDTOList);
+        if (stockChanged) {
+            rollbackOrderStock(ioOrder, oldDetailList, "修改");
+        }
 
         ioOrder.setBizDate(dto.getBizDate());
         ioOrder.setDeliverymanId(dto.getDeliverymanId());
         ioOrder.setIoTypeId(dto.getIoTypeId());
         ioOrder.setRemark(dto.getRemark());
         ioOrder.setCustomerId(IoBizTypeEnum.OUTBOUND.matches(ioOrder.getOrderType()) ? dto.getCustomerId() : null);
-        ioOrder.setSalesmanId(IoBizTypeEnum.OUTBOUND.matches(ioOrder.getOrderType()) ? dto.getSalesmanId() : null);
+        ioOrder.setSalesmanId(dto.getSalesmanId());
         if (IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType())) {
             ioOrder.setPickingStatus(PickingStatusEnum.UNPICKED.getCode());
         }
@@ -274,7 +278,40 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         if (!ioOrderDetailService.saveBatch(newDetailList)) {
             throw new BaseException(buildBizLabel(ioOrder.getOrderType()) + "单明细修改失败");
         }
-        applyStockChange(ioOrder.getOrderType(), newDetailDTOList);
+        if (stockChanged) {
+            applyStockChange(ioOrder.getOrderType(), newDetailDTOList);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateDetailLocation(IoOrderDetailLocationUpdateDTO dto) {
+        IoOrderDetail detail = ioOrderDetailService.getById(dto.getDetailId());
+        if (detail == null) {
+            throw new BaseException("出入库单明细不存在");
+        }
+        IoOrder ioOrder = getById(detail.getOrderId());
+        if (ioOrder == null) {
+            throw new BaseException("出入库单不存在");
+        }
+
+        validateLocationExists(dto.getLocationId());
+        if (Objects.equals(detail.getLocationId(), dto.getLocationId())) {
+            return;
+        }
+
+        Map<Long, ProductStockDetail> detailMap = loadProductStockDetailMap(detail.getProductId());
+        long rollbackDelta = IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType()) ? -detail.getQty() : detail.getQty();
+        changeDetailQty(detailMap, detail.getProductId(), detail.getLocationId(), rollbackDelta, ioOrder.getOrderType());
+
+        long applyDelta = IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType()) ? detail.getQty() : -detail.getQty();
+        changeDetailQty(detailMap, detail.getProductId(), dto.getLocationId(), applyDelta, ioOrder.getOrderType());
+        productStockSummaryService.syncByDetailMap(detail.getProductId(), detailMap);
+
+        detail.setLocationId(dto.getLocationId());
+        if (!ioOrderDetailService.updateById(detail)) {
+            throw new BaseException("出入库单明细不存在");
+        }
     }
 
     @Override
@@ -372,6 +409,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 throw new BaseException("出库单业务员不能为空");
             }
             validateSalesman(salesmanId);
+        } else if (salesmanId != null) {
+            validateSalesman(salesmanId);
         }
     }
 
@@ -442,6 +481,16 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    private void validateLocationExists(Long locationId) {
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Map<Long, ProductLocation> productLocationMap = dictMap.getProductLocationMap() == null
+                ? Map.of()
+                : dictMap.getProductLocationMap();
+        if (!productLocationMap.containsKey(locationId)) {
+            throw new BaseException("商品货位不存在");
+        }
+    }
+
     private void validateApplyGenerateDetails(Integer orderType, List<IoApplyDetail> applyDetailList,
                                               List<IoOrderDetailDTO> detailDTOList) {
         Map<Long, Long> applyQtyMap = applyDetailList.stream()
@@ -463,6 +512,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         detail.setProductId(detailDTO.getProductId());
         detail.setQty(detailDTO.getQty());
         detail.setLocationId(detailDTO.getLocationId());
+        detail.setRemark(detailDTO.getRemark());
         detail.setPickedQty(0L);
         return detail;
     }
@@ -478,6 +528,30 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         for (Map.Entry<Long, Map<Long, ProductStockDetail>> entry : detailGroupMap.entrySet()) {
             productStockSummaryService.syncByDetailMap(entry.getKey(), entry.getValue());
         }
+    }
+
+    private boolean hasStockChange(List<IoOrderDetail> oldDetailList, List<IoOrderDetailDTO> newDetailDTOList) {
+        return !buildStockQtyMapFromOrderDetail(oldDetailList).equals(buildStockQtyMapFromDetailDTO(newDetailDTOList));
+    }
+
+    private Map<Long, Map<Long, Long>> buildStockQtyMapFromOrderDetail(List<IoOrderDetail> detailList) {
+        if (detailList == null || detailList.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return detailList.stream()
+                .collect(Collectors.groupingBy(IoOrderDetail::getProductId, LinkedHashMap::new,
+                        Collectors.groupingBy(IoOrderDetail::getLocationId, LinkedHashMap::new,
+                                Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty()))));
+    }
+
+    private Map<Long, Map<Long, Long>> buildStockQtyMapFromDetailDTO(List<IoOrderDetailDTO> detailDTOList) {
+        if (detailDTOList == null || detailDTOList.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return detailDTOList.stream()
+                .collect(Collectors.groupingBy(IoOrderDetailDTO::getProductId, LinkedHashMap::new,
+                        Collectors.groupingBy(IoOrderDetailDTO::getLocationId, LinkedHashMap::new,
+                                Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty()))));
     }
 
     private void rollbackOrderStock(IoOrder ioOrder, List<IoOrderDetail> oldDetailList, String actionName) {
@@ -502,6 +576,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         dto.setProductId(detail.getProductId());
         dto.setQty(detail.getQty());
         dto.setLocationId(detail.getLocationId() == null ? NO_LOCATION_ID : detail.getLocationId());
+        dto.setRemark(detail.getRemark());
         return dto;
     }
 
@@ -515,6 +590,14 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .collect(Collectors.groupingBy(ProductStockDetail::getProductId, LinkedHashMap::new,
                         Collectors.toMap(ProductStockDetail::getLocationId, detail -> detail,
                                 (left, right) -> left, LinkedHashMap::new)));
+    }
+
+    private Map<Long, ProductStockDetail> loadProductStockDetailMap(Long productId) {
+        return productStockDetailService.list(new LambdaQueryWrapper<ProductStockDetail>()
+                        .eq(ProductStockDetail::getProductId, productId))
+                .stream()
+                .collect(Collectors.toMap(ProductStockDetail::getLocationId, Function.identity(),
+                        (left, right) -> left, LinkedHashMap::new));
     }
 
     private void changeDetailQty(Map<Long, ProductStockDetail> detailMap, Long productId, Long locationId, Long delta,
@@ -648,6 +731,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         vo.setProductId(detail.getProductId());
         vo.setQty(detail.getQty());
         vo.setLocationId(detail.getLocationId());
+        vo.setRemark(detail.getRemark());
         vo.setPickedQty(detail.getPickedQty());
         vo.setCreateTime(detail.getCreateTime());
         vo.setUpdateTime(detail.getUpdateTime());

@@ -23,4 +23,7 @@ public class IoOrderDetailDTO {
     @NotNull(message = "货位不能为空")
     @Min(value = 1, message = "货位不能为空")
     private Long locationId;
+
+    @Schema(description = "备注")
+    private String remark;
 }

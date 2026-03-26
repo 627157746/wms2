@@ -44,7 +44,7 @@ public class IoApply extends BaseModel implements Serializable {
     private Long customerId;
 
     @TableField(value = "salesman_id")
-    @Schema(description = "业务员ID，仅出库使用")
+    @Schema(description = "业务员ID")
     private Long salesmanId;
 
     @TableField(value = "io_type_id")

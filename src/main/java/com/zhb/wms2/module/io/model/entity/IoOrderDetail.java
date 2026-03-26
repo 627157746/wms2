@@ -41,6 +41,10 @@ public class IoOrderDetail extends BaseModel implements Serializable {
     @Schema(description = "货位ID")
     private Long locationId;
 
+    @TableField(value = "remark")
+    @Schema(description = "备注")
+    private String remark;
+
     @TableField(value = "picked_qty")
     @Schema(description = "已拣数量，仅出库使用")
     private Long pickedQty;

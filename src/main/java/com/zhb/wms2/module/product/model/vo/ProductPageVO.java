@@ -18,9 +18,6 @@ public class ProductPageVO extends Product {
     @Schema(description = "商品分类名称")
     private String productCategoryName;
 
-    @Schema(description = "期初库存货位编码")
-    private String initialStockLocationCode;
-
     @Schema(description = "库存货位编码列表")
     private List<String> locationCodes;
 }

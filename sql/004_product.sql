@@ -2,14 +2,12 @@
 CREATE TABLE IF NOT EXISTS product (
   id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
   name VARCHAR(100) NOT NULL COMMENT '商品名称',
-  code VARCHAR(50) NOT NULL COMMENT '商品编号',
+  code VARCHAR(50) NULL COMMENT '商品编号',
   barcode VARCHAR(100) NULL COMMENT '条形码',
   model VARCHAR(100) NULL COMMENT '型号',
   unit_id BIGINT NOT NULL COMMENT '单位ID',
   category_id BIGINT NULL COMMENT '分类ID',
   min_stock BIGINT NOT NULL DEFAULT 0 COMMENT '最低库存',
-  initial_stock BIGINT NOT NULL DEFAULT 0 COMMENT '期初库存',
-  initial_stock_location_id BIGINT NULL COMMENT '期初库存货位ID，0表示无货位',
   total_stock_qty BIGINT NOT NULL DEFAULT 0 COMMENT '当前总库存',
   location_ids_str VARCHAR(255) NULL COMMENT '库存货位IDs，逗号分隔',
   remark VARCHAR(255) NULL COMMENT '备注',
@@ -26,4 +24,3 @@ CREATE UNIQUE INDEX uk_product_model ON product(model, delete_flag);
 CREATE INDEX idx_product_name ON product(name);
 CREATE INDEX idx_product_category ON product(category_id);
 CREATE INDEX idx_product_unit ON product(unit_id);
-CREATE INDEX idx_product_initial_stock_location ON product(initial_stock_location_id);

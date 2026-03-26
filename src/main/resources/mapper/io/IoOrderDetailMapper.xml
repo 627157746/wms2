@@ -36,12 +36,11 @@
 
     <select id="selectCurrentStockQtyByDetailIds" resultType="com.zhb.wms2.module.io.model.dto.IoOrderDetailStockQtyDTO">
         select t.id as detailId,
-               coalesce(p.initial_stock, 0) + coalesce(sum(case
-                                                              when d.order_type = 1 then d.qty
-                                                              else -d.qty
+               coalesce(sum(case
+                                when d.order_type = 1 then d.qty
+                                else -d.qty
                    end), 0) as currentStockQty
         from io_order_detail t
-                 left join product p on p.id = t.product_id and p.delete_flag = 0
                  left join io_order_detail d on d.product_id = t.product_id
             and d.delete_flag = 0
             and d.id <![CDATA[ <= ]]> t.id
@@ -50,6 +49,6 @@
         <foreach collection="detailIds" item="detailId" open="(" separator="," close=")">
             #{detailId}
         </foreach>
-        group by t.id, p.initial_stock
+        group by t.id
     </select>
 </mapper>

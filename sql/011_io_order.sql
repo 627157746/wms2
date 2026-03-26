@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS io_order (
   biz_date DATE NOT NULL COMMENT '业务日期',
   deliveryman_id BIGINT NULL COMMENT '送货员ID',
   customer_id BIGINT NULL COMMENT '客户ID，仅出库使用',
-  salesman_id BIGINT NULL COMMENT '业务员ID，仅出库使用',
+  salesman_id BIGINT NULL COMMENT '业务员ID',
   io_type_id BIGINT NULL COMMENT '出入库类型ID',
   remark VARCHAR(255) NULL COMMENT '备注',
   picking_status TINYINT NOT NULL DEFAULT 0 COMMENT '拣货状态：0-未拣 1-已拣，仅出库使用',

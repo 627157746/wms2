@@ -109,8 +109,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         ioApply.setDeliverymanId(dto.getDeliverymanId());
         ioApply.setCustomerId(
                 IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getCustomerId() : null);
-        ioApply.setSalesmanId(
-                IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getSalesmanId() : null);
+        ioApply.setSalesmanId(dto.getSalesmanId());
         ioApply.setIoTypeId(dto.getIoTypeId());
         ioApply.setRemark(dto.getRemark());
         ioApply.setApproveStatus(ApproveStatusEnum.UNAPPROVED.getCode());
@@ -142,8 +141,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         ioApply.setDeliverymanId(dto.getDeliverymanId());
         ioApply.setCustomerId(
                 IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getCustomerId() : null);
-        ioApply.setSalesmanId(
-                IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getSalesmanId() : null);
+        ioApply.setSalesmanId(dto.getSalesmanId());
         ioApply.setIoTypeId(dto.getIoTypeId());
         ioApply.setRemark(dto.getRemark());
         if (!updateById(ioApply)) {
@@ -212,6 +210,8 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
             if (dto.getSalesmanId() == null) {
                 throw new BaseException("出库申请业务员不能为空");
             }
+            validateSalesman(dto.getSalesmanId());
+        } else if (dto.getSalesmanId() != null) {
             validateSalesman(dto.getSalesmanId());
         }
         validateProducts(dto.getDetailList());
@@ -282,6 +282,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         detail.setApplyId(applyId);
         detail.setProductId(detailDTO.getProductId());
         detail.setQty(detailDTO.getQty());
+        detail.setRemark(detailDTO.getRemark());
         return detail;
     }
 
@@ -392,6 +393,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         vo.setApplyId(detail.getApplyId());
         vo.setProductId(detail.getProductId());
         vo.setQty(detail.getQty());
+        vo.setRemark(detail.getRemark());
         vo.setCreateTime(detail.getCreateTime());
         vo.setUpdateTime(detail.getUpdateTime());
         vo.setCreateBy(detail.getCreateBy());

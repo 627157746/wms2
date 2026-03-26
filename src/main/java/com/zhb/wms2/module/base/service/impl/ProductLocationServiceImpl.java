@@ -85,11 +85,6 @@ public class ProductLocationServiceImpl extends ServiceImpl<ProductLocationMappe
         if (productStockCount > 0) {
             throw new BaseException("该货位已被商品库存使用，无法删除");
         }
-        long productCount = productMapper.selectCount(
-                new LambdaQueryWrapper<Product>().eq(Product::getInitialStockLocationId, id));
-        if (productCount > 0) {
-            throw new BaseException("该货位已被商品期初库存使用，无法删除");
-        }
         if (!removeById(id)) {
             throw new BaseException("商品货位不存在");
         }

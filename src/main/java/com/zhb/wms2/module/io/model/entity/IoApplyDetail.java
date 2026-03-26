@@ -32,4 +32,8 @@ public class IoApplyDetail extends BaseModel implements Serializable {
     @TableField(value = "qty")
     @Schema(description = "数量")
     private Long qty;
+
+    @TableField(value = "remark")
+    @Schema(description = "备注")
+    private String remark;
 }

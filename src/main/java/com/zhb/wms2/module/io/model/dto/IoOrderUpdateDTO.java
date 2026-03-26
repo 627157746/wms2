@@ -33,7 +33,7 @@ public class IoOrderUpdateDTO {
     @Min(value = 1, message = "客户不能为空")
     private Long customerId;
 
-    @Schema(description = "业务员ID，仅出库使用")
+    @Schema(description = "业务员ID")
     @Min(value = 1, message = "业务员不能为空")
     private Long salesmanId;
 

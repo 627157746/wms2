@@ -51,7 +51,6 @@ public class Product extends BaseModel implements Serializable {
      */
     @TableField(value = "code")
     @Schema(description="商品编号")
-    @NotBlank(message = "商品编号不能为空")
     private String code;
 
     /**
@@ -66,6 +65,7 @@ public class Product extends BaseModel implements Serializable {
      */
     @TableField(value = "model")
     @Schema(description="型号")
+    @NotBlank(message = "型号不能为空")
     private String model;
 
     /**
@@ -93,22 +93,6 @@ public class Product extends BaseModel implements Serializable {
     @Schema(description="最低库存")
     @Min(value = 0, message = "最低库存不能小于0")
     private Long minStock;
-
-    /**
-     * 期初库存
-     */
-    @TableField(value = "initial_stock")
-    @Schema(description="期初库存")
-    @Min(value = 0, message = "期初库存不能小于0")
-    private Long initialStock;
-
-    /**
-     * 期初库存货位ID，0表示无货位
-     */
-    @TableField(value = "initial_stock_location_id")
-    @Schema(description="期初库存货位ID，0表示无货位")
-    @Min(value = 0, message = "期初库存货位不正确")
-    private Long initialStockLocationId;
 
     /**
      * 当前总库存

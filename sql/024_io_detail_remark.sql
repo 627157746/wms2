@@ -1,0 +1,5 @@
+ALTER TABLE io_apply_detail
+    ADD COLUMN IF NOT EXISTS remark VARCHAR(255) NULL COMMENT '备注' AFTER qty;
+
+ALTER TABLE io_order_detail
+    ADD COLUMN IF NOT EXISTS remark VARCHAR(255) NULL COMMENT '备注' AFTER location_id;

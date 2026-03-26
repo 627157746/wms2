@@ -5,6 +5,7 @@ import com.zhb.wms2.common.model.R;
 import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
 import com.zhb.wms2.module.io.model.dto.IoOrderCreateDTO;
+import com.zhb.wms2.module.io.model.dto.IoOrderDetailLocationUpdateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderUpdateDTO;
 import com.zhb.wms2.module.io.model.query.IoOrderQuery;
 import com.zhb.wms2.module.io.model.vo.IoOrderPageVO;
@@ -59,6 +60,15 @@ public class IoOrderController {
             @Parameter(description = "出入库单", required = true)
             @RequestBody @Validated({Save.class, Update.class}) IoOrderUpdateDTO dto) {
         ioOrderService.updateOrder(dto);
+        return R.optOk();
+    }
+
+    @PutMapping("/detail/location")
+    @Operation(summary = "修改出入库单明细货位")
+    public R<Void> updateDetailLocation(
+            @Parameter(description = "明细货位", required = true)
+            @RequestBody @Validated IoOrderDetailLocationUpdateDTO dto) {
+        ioOrderService.updateDetailLocation(dto);
         return R.optOk();
     }
 

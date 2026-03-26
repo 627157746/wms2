@@ -24,11 +24,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 业务员控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/base/salesman")
 @Tag(name = "业务员", description = "业务员管理")
 @RequiredArgsConstructor
-@Validated
 public class SalesmanController {
 
     private final SalesmanService salesmanService;

@@ -15,23 +15,41 @@ import java.io.Serializable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+/**
+ * 出入库类型
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @Schema(description = "出入库类型")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "io_type")
 public class IoType extends BaseModel implements Serializable {
+    /**
+     * 序列化版本号。
+     */
     private static final long serialVersionUID = 1L;
 
+    /**
+     * 主键 ID。
+     */
     @TableId(value = "id", type = IdType.AUTO)
     @Schema(description = "主键ID")
     @NotNull(groups = Update.class, message = "ID不能为空")
     private Long id;
 
+    /**
+     * 类型名称。
+     */
     @TableField(value = "`name`")
     @Schema(description = "类型名称")
     @NotBlank(message = "类型名称不能为空")
     private String name;
 
+    /**
+     * 适用范围。
+     */
     @TableField(value = "`scope`")
     @Schema(description = "适用范围：0-不限 1-入库 2-出库")
     @NotNull(message = "适用范围不能为空")

@@ -23,11 +23,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 商品控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/product")
 @Tag(name = "商品", description = "商品管理")
 @RequiredArgsConstructor
-@Validated
 public class ProductController {
 
     private final ProductService productService;

@@ -6,9 +6,10 @@ import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 /**
- * @Author zhb
- * @Description
- * @Date 2025/8/5 15:10
+ * BaseQuery 模型
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Data
 public class BaseQuery {

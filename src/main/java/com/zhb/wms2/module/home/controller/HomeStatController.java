@@ -10,6 +10,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 首页统计控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/home/stat")
 @Tag(name = "首页统计", description = "首页统计")

@@ -11,13 +11,28 @@ import org.apache.ibatis.annotations.Param;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * 入出库单明细 Mapper。
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 public interface IoOrderDetailMapper extends BaseMapper<IoOrderDetail> {
 
+    /**
+     * 按商品分页查询入出库单明细。
+     */
     IPage<IoOrderDetail> selectPageByProductId(Page<IoOrderDetail> page,
                                                @Param("query") StockIoDetailQuery query);
 
+    /**
+     * 统计商品在指定明细之前的库存增减数量。
+     */
     Long sumDeltaToDetailIdByProductId(@Param("productId") Long productId,
                                        @Param("detailId") Long detailId);
 
+    /**
+     * 按明细 ID 集合查询当前库存数量。
+     */
     List<IoOrderDetailStockQtyDTO> selectCurrentStockQtyByDetailIds(@Param("detailIds") Collection<Long> detailIds);
 }

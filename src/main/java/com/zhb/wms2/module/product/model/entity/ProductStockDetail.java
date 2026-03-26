@@ -9,20 +9,23 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serializable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
 
 /**
- * @Author zhb
- * @Description 
- * @Date 2026/3/17 19:38
- */
-/**
  * 库存明细
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Schema(description="商品库存明细")
 @Data
+@Accessors(chain = true)
 @EqualsAndHashCode(callSuper=true)
 @TableName(value = "product_stock_detail")
 public class ProductStockDetail extends BaseModel implements Serializable {
+    /**
+     * 序列化版本号。
+     */
     private static final long serialVersionUID = 1L;
 
     /**

@@ -7,19 +7,35 @@ import com.zhb.wms2.module.base.model.query.DeliverymanQuery;
 import java.util.List;
 
 /**
- * @Author zhb
- * @Description
- * @Date 2026/3/17 18:57
+ * DeliverymanService 服务接口
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 public interface DeliverymanService extends IService<Deliveryman> {
 
+    /**
+     * 新增送货员。
+     */
     void saveChecked(Deliveryman deliveryman);
 
+    /**
+     * 分页查询送货员。
+     */
     IPage<Deliveryman> pageQuery(DeliverymanQuery query);
 
+    /**
+     * 按适用范围查询送货员。
+     */
     List<Deliveryman> listAllByScope(Integer scope);
 
+    /**
+     * 修改送货员。
+     */
     void updateByIdChecked(Deliveryman deliveryman);
 
+    /**
+     * 删除送货员。
+     */
     void removeByIdChecked(Long id);
 }

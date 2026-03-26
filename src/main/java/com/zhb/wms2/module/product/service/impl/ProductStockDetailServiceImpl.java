@@ -20,21 +20,54 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * @Author zhb
- * @Description 
- * @Date 2026/3/17 19:07
+ * ProductStockDetailServiceImpl 服务实现
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Service
 @RequiredArgsConstructor
 public class ProductStockDetailServiceImpl extends ServiceImpl<ProductStockDetailMapper, ProductStockDetail>
         implements ProductStockDetailService {
 
+    /**
+     * 虚拟“无货位”记录使用的货位 ID。
+     */
     private static final Long NO_LOCATION_ID = 0L;
+
+    /**
+     * 虚拟“无货位”记录使用的货位编码。
+     */
     private static final String NO_LOCATION_CODE = "无货位";
 
     private final ProductMapper productMapper;
     private final BaseDictMapService baseDictMapService;
 
+    /**
+     * 新增库存明细。
+     */
+    @Override
+    public void saveChecked(ProductStockDetail detail) {
+        // 库存明细由库存业务统一驱动创建，这里只负责失败兜底。
+        if (!super.save(detail)) {
+            throw new BaseException("库存明细新增失败");
+        }
+    }
+
+    /**
+     * 修改库存明细。
+     */
+    @Override
+    public void updateByIdChecked(ProductStockDetail detail) {
+        // 库存调整统一落在服务层，避免外部直接更新明细表。
+        if (!super.updateById(detail)) {
+            throw new BaseException("库存明细修改失败");
+        }
+    }
+
+    /**
+     * 查询商品的库存明细，并补充货位编码。
+     */
     @Override
     public List<ProductStockDetailVO> listByProductId(Long productId) {
         if (productMapper.selectById(productId) == null) {
@@ -54,25 +87,41 @@ public class ProductStockDetailServiceImpl extends ServiceImpl<ProductStockDetai
                 ? Map.of()
                 : new LinkedHashMap<>(dictMap.getProductLocationMap());
 
+        // 详情页只补充货位编码，不在这里重复计算商品汇总库存。
         return detailList.stream().map(detail -> {
             ProductStockDetailVO vo = new ProductStockDetailVO();
-            vo.setId(detail.getId());
-            vo.setProductId(detail.getProductId());
-            vo.setLocationId(detail.getLocationId());
-            vo.setQty(detail.getQty());
-            vo.setCreateTime(detail.getCreateTime());
-            vo.setUpdateTime(detail.getUpdateTime());
-            vo.setCreateBy(detail.getCreateBy());
-            vo.setUpdateBy(detail.getUpdateBy());
+            vo.setId(detail.getId())
+                    .setProductId(detail.getProductId())
+                    .setLocationId(detail.getLocationId())
+                    .setQty(detail.getQty());
+            vo.setCreateTime(detail.getCreateTime())
+                    .setUpdateTime(detail.getUpdateTime())
+                    .setCreateBy(detail.getCreateBy())
+                    .setUpdateBy(detail.getUpdateBy());
             vo.setLocationCode(buildLocationCode(detail.getLocationId(), locationMap));
             return vo;
         }).toList();
     }
 
+    /**
+     * 删除库存明细。
+     */
+    @Override
+    public void removeByIdChecked(Long id) {
+        // 删除动作由出库、转货位等业务流程触发，这里只做失败兜底。
+        if (!super.removeById(id)) {
+            throw new BaseException("库存明细删除失败");
+        }
+    }
+
+    /**
+     * 将货位 ID 转成可展示的货位编码。
+     */
     private String buildLocationCode(Long locationId, Map<Long, ProductLocation> locationMap) {
         if (Objects.equals(locationId, NO_LOCATION_ID)) {
             return NO_LOCATION_CODE;
         }
+        // 兼容历史脏数据，找不到货位时保留空值而不是直接报错。
         ProductLocation location = locationMap.get(locationId);
         return location == null ? null : location.getCode();
     }

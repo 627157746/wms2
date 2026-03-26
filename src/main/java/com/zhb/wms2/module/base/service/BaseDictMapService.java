@@ -10,5 +10,8 @@ import com.zhb.wms2.module.base.model.dto.BaseDictMapDTO;
  */
 public interface BaseDictMapService {
 
+    /**
+     * 获取 base 模块的基础资料映射。
+     */
     BaseDictMapDTO getBaseDictMap();
 }

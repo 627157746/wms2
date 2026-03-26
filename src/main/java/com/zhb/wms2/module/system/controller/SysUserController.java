@@ -10,14 +10,21 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 系统用户控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/system/user")
 @Tag(name = "系统用户", description = "系统用户登录登出")
 @RequiredArgsConstructor
-@Validated
 public class SysUserController {
 
     private final SysUserService sysUserService;

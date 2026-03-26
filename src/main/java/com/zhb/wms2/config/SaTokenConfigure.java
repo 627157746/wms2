@@ -7,14 +7,18 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * @Author zhb
- * @Description Sa-Token 权限认证配置类 暂时不用
- * @Date 2025/8/5 10:59
+ * Sa-Token 鉴权配置。
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Configuration
 public class SaTokenConfigure implements WebMvcConfigurer {
 
-    private static final String[] excludePath = {"/favicon.ico",
+    /**
+     * 无需登录即可访问的路径。
+     */
+    private static final String[] EXCLUDE_PATHS = {"/favicon.ico",
             "/**doc.*",
             "/**swagger-ui.*",
             "/**swagger-resources",
@@ -22,12 +26,13 @@ public class SaTokenConfigure implements WebMvcConfigurer {
             "/**v3/api-docs/**",
             "/system/user/login"};
 
-    // 注册 Sa-Token 拦截器，打开注解式鉴权功能
+    /**
+     * 注册 Sa-Token 登录校验拦截器。
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // 注册 Sa-Token 拦截器，打开注解式鉴权功能
         registry.addInterceptor(new SaInterceptor(handle -> StpUtil.checkLogin()))
                 .addPathPatterns("/**")
-                .excludePathPatterns(excludePath);
+                .excludePathPatterns(EXCLUDE_PATHS);
     }
 }

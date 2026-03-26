@@ -15,19 +15,19 @@ import lombok.EqualsAndHashCode;
 import java.io.Serializable;
 
 /**
- * @Author zhb
- * @Description
- * @Date 2026/3/17 19:34
- */
-
-/**
  * 客户
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Schema(description = "客户")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "customer")
 public class Customer extends BaseModel implements Serializable {
+    /**
+     * 序列化版本号。
+     */
     private static final long serialVersionUID = 1L;
 
     /**

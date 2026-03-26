@@ -22,13 +22,17 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * @Author zhb
- * @Description
- * @Date 2025/8/5 12:08
+ * Jackson 序列化配置。
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Configuration
 public class JacksonConfig {
 
+    /**
+     * 注册统一的日期时间格式与通用序列化配置。
+     */
     @Bean
     @Primary
     public ObjectMapper objectMapper() {

@@ -15,18 +15,19 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * @Author zhb
- * @Description 
- * @Date 2026/3/17 19:35
- */
-/**
  * 商品货位
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Schema(description="商品货位")
 @Data
 @EqualsAndHashCode(callSuper=true)
 @TableName(value = "product_location")
 public class ProductLocation extends BaseModel implements Serializable {
+    /**
+     * 序列化版本号。
+     */
     private static final long serialVersionUID = 1L;
 
     /**

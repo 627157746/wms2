@@ -6,18 +6,29 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * @Author zhb
- * @Description
- * @Date 2025/8/5 11:01
+ * RStat 模型
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class RStat<T> {
 
+    /**
+     * 统计结果。
+     */
     private T stat;
+
+    /**
+     * 分页数据。
+     */
     private IPage<T> data;
 
+    /**
+     * 创建只包含统计对象的返回结构。
+     */
     public static <T> RStat<T> create(T t) {
         return new RStat<>(t, null);
     }

@@ -14,19 +14,15 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @Author zhb
- * @Description 逻辑分页工具类
- * @Date 2025/8/5 15:09
+ * 逻辑分页与汇总工具。
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 public class PageSortUtil {
 
     /**
-     * 逻辑分页
-     *
-     * @param list
-     * @param baseQuery
-     * @param <T>
-     * @return
+     * 对列表进行逻辑分页。
      */
     public static <T> IPage<T> page(List<T> list, BaseQuery baseQuery) {
         List<T> pageList = ListUtil.page(baseQuery.getCurrent().intValue() - 1, baseQuery.getSize().intValue(), list);
@@ -36,12 +32,7 @@ public class PageSortUtil {
     }
 
     /**
-     * 逻辑分页+排序
-     *
-     * @param list
-     * @param baseSortQuery
-     * @param <T>
-     * @return
+     * 对列表排序后再做逻辑分页。
      */
     public static <T> IPage<T> pageSort(List<T> list, BaseSortQuery baseSortQuery) {
         ListUtil.sortByProperty(list, baseSortQuery.getSortField());
@@ -52,12 +43,7 @@ public class PageSortUtil {
     }
 
     /**
-     * 统计
-     *
-     * @param stat
-     * @param list
-     * @param ignoreFields
-     * @param <T>
+     * 汇总列表中的数值字段。
      */
     public static <T> void stat(T stat, List<T> list, String... ignoreFields) {
         Class<?> clazz = stat.getClass();

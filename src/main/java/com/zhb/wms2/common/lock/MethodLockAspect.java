@@ -20,6 +20,12 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 
+/**
+ * MethodLockAspect
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @Slf4j
 @Aspect
 @Component
@@ -31,6 +37,9 @@ public class MethodLockAspect {
     private final ExpressionParser expressionParser = new SpelExpressionParser();
     private final ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
+    /**
+     * 为声明了方法锁注解的方法织入本地互斥控制。
+     */
     @Around("@annotation(methodLock)")
     public Object around(ProceedingJoinPoint joinPoint, MethodLock methodLock) throws Throwable {
         Method method = getTargetMethod(joinPoint);
@@ -54,11 +63,17 @@ public class MethodLockAspect {
         }
     }
 
+    /**
+     * 获取代理对象实际执行的目标方法。
+     */
     private Method getTargetMethod(ProceedingJoinPoint joinPoint) {
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         return AopUtils.getMostSpecificMethod(method, joinPoint.getTarget().getClass());
     }
 
+    /**
+     * 结合注解配置与 SpEL 表达式生成最终锁键。
+     */
     private String buildLockKey(ProceedingJoinPoint joinPoint, Method method, MethodLock methodLock) {
         String lockName = StrUtil.isNotBlank(methodLock.name())
                 ? methodLock.name()
@@ -77,6 +92,9 @@ public class MethodLockAspect {
         return lockName + ":" + key;
     }
 
+    /**
+     * 将 SpEL 结果统一转换为锁键字符串。
+     */
     private String stringify(Object value) {
         if (value == null) {
             return "null";

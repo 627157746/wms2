@@ -17,11 +17,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 商品单位控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/base/productUnit")
 @Tag(name = "商品单位", description = "商品单位管理")
 @RequiredArgsConstructor
-@Validated
 public class ProductUnitController {
 
     private final ProductUnitService productUnitService;

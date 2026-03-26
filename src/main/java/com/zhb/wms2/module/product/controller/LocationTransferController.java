@@ -18,11 +18,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 转货位控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/product/locationTransfer")
 @Tag(name = "转货位", description = "转货位管理")
 @RequiredArgsConstructor
-@Validated
 public class LocationTransferController {
 
     private final LocationTransferService locationTransferService;

@@ -18,9 +18,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * @Author zhb
- * @Description
- * @Date 2026/3/17 19:02
+ * ProductUnitServiceImpl 服务实现
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Service
 @RequiredArgsConstructor
@@ -29,40 +30,62 @@ public class ProductUnitServiceImpl extends ServiceImpl<ProductUnitMapper, Produ
     private final ProductMapper productMapper;
     private final BaseDictMapStore baseDictMapStore;
 
+    /**
+     * 新增商品单位并校验名称唯一。
+     */
     @Override
     public void saveChecked(ProductUnit unit) {
+        // 商品单位展示面广，新增前先做唯一校验。
         validateNameUnique(unit.getName(), null);
         if (!super.save(unit)) {
             throw new BaseException("商品单位新增失败");
         }
+        // 单位字典变更后清缓存，保证商品详情展示一致。
         baseDictMapStore.clearProductUnitMap();
     }
 
+    /**
+     * 分页查询商品单位。
+     */
     @Override
     public IPage<ProductUnit> pageQuery(ProductUnitQuery query) {
+        // 商品单位分页只按名称过滤。
         LambdaQueryWrapper<ProductUnit> wrapper = buildWrapper(query);
         return page(new Page<>(query.getCurrent(), query.getSize()), wrapper);
     }
 
+    /**
+     * 查询全部商品单位。
+     */
     @Override
     public List<ProductUnit> listAll() {
+        // 下拉场景直接返回全量单位。
         return list(new LambdaQueryWrapper<ProductUnit>().orderByDesc(ProductUnit::getId));
     }
 
+    /**
+     * 修改商品单位并校验名称唯一。
+     */
     @Override
     public void updateByIdChecked(ProductUnit unit) {
         if (getById(unit.getId()) == null) {
             throw new BaseException("商品单位不存在");
         }
+        // 修改时排除自身后再校验名称唯一。
         validateNameUnique(unit.getName(), unit.getId());
         if (!updateById(unit)) {
             throw new BaseException("商品单位不存在");
         }
+        // 修改后清缓存，避免商品页继续展示旧单位名。
         baseDictMapStore.clearProductUnitMap();
     }
 
+    /**
+     * 删除商品单位前校验是否被商品引用。
+     */
     @Override
     public void removeByIdChecked(Long id) {
+        // 单位一旦被商品引用，就不能直接删除。
         long count = productMapper.selectCount(new LambdaQueryWrapper<Product>().eq(Product::getUnitId, id));
         if (count > 0) {
             throw new BaseException("该单位已被商品使用，无法删除");
@@ -70,16 +93,25 @@ public class ProductUnitServiceImpl extends ServiceImpl<ProductUnitMapper, Produ
         if (!removeById(id)) {
             throw new BaseException("商品单位不存在");
         }
+        // 删除后同步失效缓存。
         baseDictMapStore.clearProductUnitMap();
     }
 
+    /**
+     * 构建商品单位分页查询条件。
+     */
     private LambdaQueryWrapper<ProductUnit> buildWrapper(ProductUnitQuery query) {
+        // 单位列表仅支持名称模糊搜索。
         return new LambdaQueryWrapper<ProductUnit>()
                 .like(StrUtil.isNotBlank(query.getName()), ProductUnit::getName, query.getName())
                 .orderByDesc(ProductUnit::getId);
     }
 
+    /**
+     * 校验商品单位名称唯一。
+     */
     private void validateNameUnique(String name, Long excludeId) {
+        // 编辑时排除当前记录，避免自身触发重复校验。
         LambdaQueryWrapper<ProductUnit> wrapper = new LambdaQueryWrapper<ProductUnit>()
                 .eq(ProductUnit::getName, name)
                 .ne(excludeId != null, ProductUnit::getId, excludeId);

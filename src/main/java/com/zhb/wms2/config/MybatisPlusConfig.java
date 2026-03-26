@@ -7,13 +7,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * @Author zhb
- * @Description
- * @Date 2025/8/5 13:16
+ * MyBatis-Plus 配置。
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Configuration
 public class MybatisPlusConfig {
 
+    /**
+     * 注册 MyBatis-Plus 分页拦截器。
+     */
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();

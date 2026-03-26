@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import java.time.LocalDateTime;
 
@@ -13,9 +14,10 @@ import java.time.LocalDateTime;
  * 所有业务实体都应继承此类
  *
  * @author zhb
- * @since 1.0
+ * @since 2026/3/26
  */
 @Data
+@Accessors(chain = true)
 public class BaseModel {
 
     /**

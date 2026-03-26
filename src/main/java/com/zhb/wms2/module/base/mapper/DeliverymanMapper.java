@@ -4,9 +4,10 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
 
 /**
- * @Author zhb
- * @Description
- * @Date 2026/3/17 19:34
+ * DeliverymanMapper Mapper
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 public interface DeliverymanMapper extends BaseMapper<Deliveryman> {
 }

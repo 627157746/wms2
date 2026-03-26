@@ -19,11 +19,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 出入库类型控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/base/ioType")
 @Tag(name = "出入库类型", description = "出入库类型管理")
 @RequiredArgsConstructor
-@Validated
 public class IoTypeController {
 
     private final IoTypeService ioTypeService;

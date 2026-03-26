@@ -18,11 +18,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 客户控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/base/customer")
 @Tag(name = "客户", description = "客户管理")
 @RequiredArgsConstructor
-@Validated
 public class CustomerController {
 
     private final CustomerService customerService;

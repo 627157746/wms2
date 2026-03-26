@@ -6,38 +6,74 @@ import java.time.LocalDate;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+/**
+ * 出入库单分页查询条件查询对象
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "出入库单分页查询条件")
 public class IoOrderQuery extends BaseQuery {
 
+    /**
+     * 单号。
+     */
     @Schema(description = "单号")
     private String orderNo;
 
+    /**
+     * 单据类型。
+     */
     @Schema(description = "单据类型：1-入库 2-出库")
     private Integer orderType;
 
+    /**
+     * 业务日期开始。
+     */
     @Schema(description = "业务日期开始")
     private LocalDate bizDateStart;
 
+    /**
+     * 业务日期结束。
+     */
     @Schema(description = "业务日期结束")
     private LocalDate bizDateEnd;
 
+    /**
+     * 送货员 ID。
+     */
     @Schema(description = "送货员ID")
     private Long deliverymanId;
 
+    /**
+     * 客户 ID。
+     */
     @Schema(description = "客户ID")
     private Long customerId;
 
+    /**
+     * 业务员 ID。
+     */
     @Schema(description = "业务员ID")
     private Long salesmanId;
 
+    /**
+     * 出入库类型 ID。
+     */
     @Schema(description = "出入库类型ID")
     private Long ioTypeId;
 
+    /**
+     * 来源申请 ID。
+     */
     @Schema(description = "来源申请ID")
     private Long applyId;
 
+    /**
+     * 拣货状态。
+     */
     @Schema(description = "拣货状态：0-未拣 1-已拣")
     private Integer pickingStatus;
 }

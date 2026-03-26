@@ -17,11 +17,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 商品分类控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/base/productCategory")
 @Tag(name = "商品分类", description = "商品分类管理")
 @RequiredArgsConstructor
-@Validated
 public class ProductCategoryController {
 
     private final ProductCategoryService productCategoryService;

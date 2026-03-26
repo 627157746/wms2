@@ -1,5 +1,6 @@
 package com.zhb.wms2.module.product.service.support;
 
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.product.mapper.ProductMapper;
@@ -12,14 +13,26 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+/**
+ * ProductStockSummaryService 服务
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @Service
 @RequiredArgsConstructor
 public class ProductStockSummaryService {
 
+    /**
+     * 虚拟“无货位”记录使用的货位 ID。
+     */
     private static final Long NO_LOCATION_ID = 0L;
 
     private final ProductMapper productMapper;
 
+    /**
+     * 根据库存明细重新汇总商品总库存和货位列表。
+     */
     public void syncByDetailMap(Long productId, Map<Long, ProductStockDetail> detailMap) {
         Product product = productMapper.selectById(productId);
         if (product == null) {
@@ -38,7 +51,7 @@ public class ProductStockSummaryService {
                     .sorted(Comparator.naturalOrder())
                     .map(String::valueOf)
                     .collect(Collectors.joining(","));
-            if (locationIdsStr.isBlank()) {
+            if (StrUtil.isBlank(locationIdsStr)) {
                 locationIdsStr = null;
             }
         }

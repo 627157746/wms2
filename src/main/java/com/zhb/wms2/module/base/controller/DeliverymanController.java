@@ -19,11 +19,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 送货员控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/base/deliveryman")
 @Tag(name = "送货员", description = "送货员管理")
 @RequiredArgsConstructor
-@Validated
 public class DeliverymanController {
 
     private final DeliverymanService deliverymanService;

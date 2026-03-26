@@ -5,9 +5,10 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * @Author zhb
- * @Description
- * @Date 2025/8/5 15:12
+ * BaseSortQuery 模型
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Data
 @EqualsAndHashCode(callSuper = false)

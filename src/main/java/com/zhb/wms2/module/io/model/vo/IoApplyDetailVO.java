@@ -5,12 +5,23 @@ import com.zhb.wms2.module.product.model.vo.ProductPageVO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
 
+/**
+ * 出入库申请明细结果 VO
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @Data
+@Accessors(chain = true)
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "出入库申请明细结果")
 public class IoApplyDetailVO extends IoApplyDetail {
 
+    /**
+     * 商品信息。
+     */
     @Schema(description = "商品信息")
     private ProductPageVO product;
 }

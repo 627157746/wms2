@@ -22,11 +22,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 出入库单控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/io/order")
 @Tag(name = "出入库单", description = "出入库单管理")
 @RequiredArgsConstructor
-@Validated
 public class IoOrderController {
 
     private final IoOrderService ioOrderService;

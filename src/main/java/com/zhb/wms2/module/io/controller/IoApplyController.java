@@ -21,11 +21,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 出入库申请控制器
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @RestController
 @RequestMapping("/io/apply")
 @Tag(name = "出入库申请", description = "出入库申请管理")
 @RequiredArgsConstructor
-@Validated
 public class IoApplyController {
 
     private final IoApplyService ioApplyService;

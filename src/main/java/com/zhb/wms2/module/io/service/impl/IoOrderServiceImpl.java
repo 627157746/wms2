@@ -41,14 +41,39 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * IoOrderServiceImpl 服务实现
+ *
+ * @author zhb
+ * @since 2026/3/26
+ */
 @Service
 @RequiredArgsConstructor
 public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> implements IoOrderService {
 
+    /**
+     * 虚拟“无货位”记录使用的货位 ID。
+     */
     private static final Long NO_LOCATION_ID = 0L;
+
+    /**
+     * 虚拟“无货位”记录使用的货位编码。
+     */
     private static final String NO_LOCATION_CODE = "无货位";
+
+    /**
+     * 入库单号前缀。
+     */
     private static final String INBOUND_ORDER_PREFIX = "RK";
+
+    /**
+     * 出库单号前缀。
+     */
     private static final String OUTBOUND_ORDER_PREFIX = "CK";
+
+    /**
+     * 单号流水位数。
+     */
     private static final int ORDER_NO_DIGIT_LENGTH = 6;
 
     private final IoApplyMapper ioApplyMapper;
@@ -61,6 +86,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     private final BaseDictMapService baseDictMapService;
     private final ProductStockSummaryService productStockSummaryService;
 
+    /**
+     * 分页查询出入库单，并补充申请号、基础资料和明细信息。
+     */
     @Override
     public IPage<IoOrderPageVO> pageQuery(IoOrderQuery query) {
         IPage<IoOrder> page = page(new Page<>(query.getCurrent(), query.getSize()), buildWrapper(query));
@@ -69,6 +97,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             return new Page<>(query.getCurrent(), query.getSize());
         }
 
+        // 列表页统一批量回填申请号、字典信息和明细，避免逐条补数据。
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
         Map<Long, Deliveryman> deliverymanMap = dictMap.getDeliverymanMap() == null
                 ? Map.of() : dictMap.getDeliverymanMap();
@@ -92,6 +121,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 detailMap.get(ioOrder.getId())));
     }
 
+    /**
+     * 查询出入库单详情，并组装完整展示对象。
+     */
     @Override
     public IoOrderPageVO getDetailById(Long id) {
         IoOrder ioOrder = getById(id);
@@ -99,6 +131,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             throw new BaseException("出入库单不存在");
         }
 
+        // 详情页复用同一套 VO 组装逻辑，保证和分页列表字段一致。
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
         Map<Long, Deliveryman> deliverymanMap = dictMap.getDeliverymanMap() == null
                 ? Map.of() : dictMap.getDeliverymanMap();
@@ -117,6 +150,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         return buildPageVO(ioOrder, deliverymanMap, customerMap, salesmanMap, ioTypeMap, applyNoMap, detailMap.get(id));
     }
 
+    /**
+     * 按商品分页查询出入库明细流水。
+     */
     @Override
     public IPage<StockIoDetailVO> pageDetailByProductId(StockIoDetailQuery query) {
         Long productId = query.getProductId();
@@ -124,6 +160,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             throw new BaseException("商品不存在");
         }
 
+        // 明细流水分页先查明细，再批量补单头和商品信息。
         IPage<IoOrderDetail> detailPage = ioOrderDetailMapper.selectPageByProductId(
                 new Page<>(query.getCurrent(), query.getSize()), query);
         List<IoOrderDetail> detailList = detailPage.getRecords();
@@ -158,6 +195,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             if (ioOrder == null) {
                 return new StockIoDetailVO();
             }
+            // 当前库存按明细 ID 反查，便于页面展示该笔单据执行后的库存结果。
             Product product = productMap.get(detail.getProductId());
             return buildStockIoDetailVO(ioOrder, detail, product,
                     deliverymanMap.get(ioOrder.getDeliverymanId()),
@@ -166,6 +204,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         });
     }
 
+    /**
+     * 查询每条出入库明细当前对应的库存数量。
+     */
     private Map<Long, Long> buildCurrentStockQtyMap(List<IoOrderDetail> detailList) {
         if (detailList == null || detailList.isEmpty()) {
             return Collections.emptyMap();
@@ -177,12 +218,16 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         if (detailIds.isEmpty()) {
             return Collections.emptyMap();
         }
+        // 由 mapper 一次性计算每条明细对应的当前库存，避免在 Java 侧拼库存流水。
         return ioOrderDetailMapper.selectCurrentStockQtyByDetailIds(detailIds).stream()
                 .collect(Collectors.toMap(IoOrderDetailStockQtyDTO::getDetailId,
                         item -> item.getCurrentStockQty() == null ? 0L : item.getCurrentStockQty(),
                         (left, right) -> left, LinkedHashMap::new));
     }
 
+    /**
+     * 根据申请单生成出入库单，并同步申请执行状态。
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long generateOrderByApply(Long applyId, IoOrderGenerateDTO dto) {
@@ -201,20 +246,26 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
 
         List<IoOrderDetailDTO> detailDTOList = dto.getDetailList();
         validateDetailRefs(detailDTOList);
+        // 由申请生成的单据不允许随意改数量，必须与申请汇总数量一致。
         validateApplyGenerateDetails(ioApply.getOrderType(), applyDetailList, detailDTOList);
 
         IoOrder ioOrder = createOrder(ioApply.getOrderType(), ioApply.getId(), dto.getBizDate(),
                 ioApply.getDeliverymanId(), ioApply.getCustomerId(), ioApply.getSalesmanId(),
                 ioApply.getIoTypeId(), dto.getRemark(),
                 detailDTOList);
+        // 生成单据成功后，把申请状态推进为已执行完成。
         ioApply.setIoStatus(IoStatusEnum.DONE.getCode());
         ioApplyMapper.updateById(ioApply);
         return ioOrder.getId();
     }
 
+    /**
+     * 手工新增出入库单。
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long saveOrder(IoOrderCreateDTO dto) {
+        // 手工单据直接校验单头和明细引用，不依赖申请单。
         validateHeaderRefs(dto.getOrderType(), dto.getDeliverymanId(), dto.getCustomerId(), dto.getSalesmanId(),
                 dto.getIoTypeId());
         List<IoOrderDetailDTO> detailDTOList = dto.getDetailList();
@@ -225,6 +276,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 dto.getIoTypeId(), dto.getRemark(), detailDTOList).getId();
     }
 
+    /**
+     * 修改出入库单，并在库存受影响时先回滚再重放。
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateOrder(IoOrderUpdateDTO dto) {
@@ -242,15 +296,16 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 new LambdaQueryWrapper<IoOrderDetail>().eq(IoOrderDetail::getOrderId, dto.getId()));
         boolean stockChanged = hasStockChange(oldDetailList, newDetailDTOList);
         if (stockChanged) {
+            // 库存受影响时先回滚旧库存，再重放新明细，避免直接 diff 出错。
             rollbackOrderStock(ioOrder, oldDetailList, "修改");
         }
 
-        ioOrder.setBizDate(dto.getBizDate());
-        ioOrder.setDeliverymanId(dto.getDeliverymanId());
-        ioOrder.setIoTypeId(dto.getIoTypeId());
-        ioOrder.setRemark(dto.getRemark());
-        ioOrder.setCustomerId(IoBizTypeEnum.OUTBOUND.matches(ioOrder.getOrderType()) ? dto.getCustomerId() : null);
-        ioOrder.setSalesmanId(dto.getSalesmanId());
+        ioOrder.setBizDate(dto.getBizDate())
+                .setDeliverymanId(dto.getDeliverymanId())
+                .setIoTypeId(dto.getIoTypeId())
+                .setRemark(dto.getRemark())
+                .setCustomerId(IoBizTypeEnum.OUTBOUND.matches(ioOrder.getOrderType()) ? dto.getCustomerId() : null)
+                .setSalesmanId(dto.getSalesmanId());
         if (IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType())) {
             ioOrder.setPickingStatus(PickingStatusEnum.UNPICKED.getCode());
         }
@@ -258,18 +313,20 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             throw new BaseException("出入库单不存在");
         }
 
-        ioOrderDetailService.remove(new LambdaQueryWrapper<IoOrderDetail>().eq(IoOrderDetail::getOrderId, dto.getId()));
+        // 明细修改统一采用全删全建，保持逻辑简单且与库存回放一致。
+        ioOrderDetailService.removeByOrderIdChecked(dto.getId());
         List<IoOrderDetail> newDetailList = newDetailDTOList.stream()
                 .map(detailDTO -> buildOrderDetail(ioOrder.getId(), ioOrder.getOrderType(), detailDTO))
                 .toList();
-        if (!ioOrderDetailService.saveBatch(newDetailList)) {
-            throw new BaseException(buildBizLabel(ioOrder.getOrderType()) + "单明细修改失败");
-        }
+        ioOrderDetailService.saveBatchChecked(newDetailList);
         if (stockChanged) {
             applyStockChange(ioOrder.getOrderType(), newDetailDTOList);
         }
     }
 
+    /**
+     * 调整单条明细的货位，并同步对应库存明细。
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateDetailLocation(IoOrderDetailLocationUpdateDTO dto) {
@@ -287,6 +344,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             return;
         }
 
+        // 货位调整本质上是对旧货位回滚、对新货位重放一次库存变更。
         Map<Long, ProductStockDetail> detailMap = loadProductStockDetailMap(detail.getProductId());
         long rollbackDelta = IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType()) ? -detail.getQty() : detail.getQty();
         changeDetailQty(detailMap, detail.getProductId(), detail.getLocationId(), rollbackDelta, ioOrder.getOrderType());
@@ -296,11 +354,12 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         productStockSummaryService.syncByDetailMap(detail.getProductId(), detailMap);
 
         detail.setLocationId(dto.getLocationId());
-        if (!ioOrderDetailService.updateById(detail)) {
-            throw new BaseException("出入库单明细不存在");
-        }
+        ioOrderDetailService.updateByIdChecked(detail);
     }
 
+    /**
+     * 对出库单执行拣货完成标记。
+     */
     @Override
     public void pickById(Long id) {
         IoOrder ioOrder = getById(id);
@@ -313,12 +372,16 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         if (PickingStatusEnum.PICKED.matches(ioOrder.getPickingStatus())) {
             throw new BaseException("出库单已拣货，无需重复操作");
         }
+        // 拣货状态只对出库单生效，入库单不进入该流程。
         ioOrder.setPickingStatus(PickingStatusEnum.PICKED.getCode());
         if (!updateById(ioOrder)) {
             throw new BaseException("出入库单不存在");
         }
     }
 
+    /**
+     * 删除出入库单前回滚库存，并删除对应明细。
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void removeByIdChecked(Long id) {
@@ -328,45 +391,55 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
         List<IoOrderDetail> detailList = ioOrderDetailService.list(
                 new LambdaQueryWrapper<IoOrderDetail>().eq(IoOrderDetail::getOrderId, id));
+        // 删除单据前必须先撤销库存影响，保证库存汇总和明细都回到删除前状态。
         rollbackOrderStock(ioOrder, detailList, "删除");
-        ioOrderDetailService.remove(new LambdaQueryWrapper<IoOrderDetail>().eq(IoOrderDetail::getOrderId, id));
+        ioOrderDetailService.removeByOrderIdChecked(id);
         if (!removeById(id)) {
             throw new BaseException("出入库单不存在");
         }
     }
 
+    /**
+     * 创建出入库单实体并落库，同时同步库存变化。
+     */
     private IoOrder createOrder(Integer orderType, Long applyId, java.time.LocalDate bizDate, Long deliverymanId,
                                 Long customerId, Long salesmanId, Long ioTypeId, String remark,
                                 List<IoOrderDetailDTO> detailDTOList) {
-        IoOrder ioOrder = new IoOrder();
-        ioOrder.setOrderNo(generateOrderNo(orderType));
-        ioOrder.setOrderType(orderType);
-        ioOrder.setApplyId(applyId);
-        ioOrder.setBizDate(bizDate);
-        ioOrder.setDeliverymanId(deliverymanId);
-        ioOrder.setCustomerId(customerId);
-        ioOrder.setSalesmanId(salesmanId);
-        ioOrder.setIoTypeId(ioTypeId);
-        ioOrder.setRemark(remark);
-        ioOrder.setPickingStatus(PickingStatusEnum.UNPICKED.getCode());
+        // 单据实体先组装完整，再统一交给保存和库存调整逻辑处理。
+        IoOrder ioOrder = new IoOrder()
+                .setOrderNo(generateOrderNo(orderType))
+                .setOrderType(orderType)
+                .setApplyId(applyId)
+                .setBizDate(bizDate)
+                .setDeliverymanId(deliverymanId)
+                .setCustomerId(customerId)
+                .setSalesmanId(salesmanId)
+                .setIoTypeId(ioTypeId)
+                .setRemark(remark)
+                .setPickingStatus(PickingStatusEnum.UNPICKED.getCode());
         saveOrderAndAdjustStock(ioOrder, detailDTOList);
         return ioOrder;
     }
 
+    /**
+     * 保存出入库单及明细，并应用库存变化。
+     */
     private void saveOrderAndAdjustStock(IoOrder ioOrder, List<IoOrderDetailDTO> detailDTOList) {
         if (!save(ioOrder)) {
             throw new BaseException(buildBizLabel(ioOrder.getOrderType()) + "单新增失败");
         }
 
+        // 单头落库后再生成明细并同步库存，避免明细缺少主单 ID。
         List<IoOrderDetail> detailList = detailDTOList.stream()
                 .map(detailDTO -> buildOrderDetail(ioOrder.getId(), ioOrder.getOrderType(), detailDTO))
                 .toList();
-        if (!ioOrderDetailService.saveBatch(detailList)) {
-            throw new BaseException(buildBizLabel(ioOrder.getOrderType()) + "单明细新增失败");
-        }
+        ioOrderDetailService.saveBatchChecked(detailList);
         applyStockChange(ioOrder.getOrderType(), detailDTOList);
     }
 
+    /**
+     * 校验申请单是否满足生成出入库单的前置条件。
+     */
     private void validateApplyCanGenerate(IoApply ioApply) {
         if (!ApproveStatusEnum.APPROVED.matches(ioApply.getApproveStatus())) {
             throw new BaseException(buildBizLabel(ioApply.getOrderType()) + "申请未审批，无法生成"
@@ -383,11 +456,15 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    /**
+     * 校验单头关联的送货员、客户、业务员和出入库类型。
+     */
     private void validateHeaderRefs(Integer orderType, Long deliverymanId, Long customerId, Long salesmanId,
                                     Long ioTypeId) {
         validateDeliveryman(orderType, deliverymanId);
         validateIoType(orderType, ioTypeId);
         if (IoBizTypeEnum.OUTBOUND.matches(orderType)) {
+            // 出库单必须具备客户和业务员，入库单则允许为空。
             if (customerId == null) {
                 throw new BaseException("出库单客户不能为空");
             }
@@ -401,6 +478,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    /**
+     * 校验送货员存在且适用于当前单据类型。
+     */
     private void validateDeliveryman(Integer orderType, Long deliverymanId) {
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
         Deliveryman deliveryman = dictMap.getDeliverymanMap() == null
@@ -417,6 +497,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    /**
+     * 校验客户存在。
+     */
     private void validateCustomer(Long customerId) {
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
         Customer customer = dictMap.getCustomerMap() == null
@@ -427,6 +510,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    /**
+     * 校验业务员存在。
+     */
     private void validateSalesman(Long salesmanId) {
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
         Salesman salesman = dictMap.getSalesmanMap() == null
@@ -437,6 +523,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    /**
+     * 校验出入库类型存在且适用于当前单据类型。
+     */
     private void validateIoType(Integer orderType, Long ioTypeId) {
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
         IoType ioType = dictMap.getIoTypeMap() == null
@@ -450,11 +539,15 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    /**
+     * 校验明细中的商品和货位引用都存在。
+     */
     private void validateDetailRefs(List<IoOrderDetailDTO> detailDTOList) {
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
         Map<Long, ProductLocation> productLocationMap = dictMap.getProductLocationMap() == null
                 ? Map.of()
                 : dictMap.getProductLocationMap();
+        // 先批量收集商品，再顺手校验每条明细的货位引用。
         Set<Long> productIds = new LinkedHashSet<>();
         for (IoOrderDetailDTO detail : detailDTOList) {
             productIds.add(detail.getProductId());
@@ -468,6 +561,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    /**
+     * 校验货位存在。
+     */
     private void validateLocationExists(Long locationId) {
         BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
         Map<Long, ProductLocation> productLocationMap = dictMap.getProductLocationMap() == null
@@ -478,8 +574,12 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    /**
+     * 校验由申请生成的出入库单明细数量与申请一致。
+     */
     private void validateApplyGenerateDetails(Integer orderType, List<IoApplyDetail> applyDetailList,
                                               List<IoOrderDetailDTO> detailDTOList) {
+        // 生成单据时按商品汇总数量比对，允许同一商品拆到多个货位。
         Map<Long, Long> applyQtyMap = applyDetailList.stream()
                 .collect(Collectors.groupingBy(IoApplyDetail::getProductId, LinkedHashMap::new,
                         Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty())));
@@ -492,19 +592,25 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    /**
+     * 将出入库明细 DTO 转为实体。
+     */
     private IoOrderDetail buildOrderDetail(Long orderId, Integer orderType, IoOrderDetailDTO detailDTO) {
-        IoOrderDetail detail = new IoOrderDetail();
-        detail.setOrderId(orderId);
-        detail.setOrderType(orderType);
-        detail.setProductId(detailDTO.getProductId());
-        detail.setQty(detailDTO.getQty());
-        detail.setLocationId(detailDTO.getLocationId());
-        detail.setRemark(detailDTO.getRemark());
-        detail.setPickedQty(0L);
-        return detail;
+        return new IoOrderDetail()
+                .setOrderId(orderId)
+                .setOrderType(orderType)
+                .setProductId(detailDTO.getProductId())
+                .setQty(detailDTO.getQty())
+                .setLocationId(detailDTO.getLocationId())
+                .setRemark(detailDTO.getRemark())
+                .setPickedQty(0L);
     }
 
+    /**
+     * 按单据方向增减库存明细，并同步商品库存汇总。
+     */
     private void applyStockChange(Integer orderType, List<IoOrderDetailDTO> detailDTOList) {
+        // 先按商品分组加载库存明细，再逐条应用库存增减，最后回写商品汇总。
         Map<Long, Map<Long, ProductStockDetail>> detailGroupMap = loadStockDetailGroup(detailDTOList);
         for (IoOrderDetailDTO detailDTO : detailDTOList) {
             Map<Long, ProductStockDetail> productDetailMap = detailGroupMap.computeIfAbsent(
@@ -517,10 +623,17 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    /**
+     * 判断修改前后是否发生了库存分布变化。
+     */
     private boolean hasStockChange(List<IoOrderDetail> oldDetailList, List<IoOrderDetailDTO> newDetailDTOList) {
+        // 只要商品、货位或数量任一维度变化，就认为库存分布已变化。
         return !buildStockQtyMapFromOrderDetail(oldDetailList).equals(buildStockQtyMapFromDetailDTO(newDetailDTOList));
     }
 
+    /**
+     * 将旧明细列表转换为商品-货位-数量的映射。
+     */
     private Map<Long, Map<Long, Long>> buildStockQtyMapFromOrderDetail(List<IoOrderDetail> detailList) {
         if (detailList == null || detailList.isEmpty()) {
             return Collections.emptyMap();
@@ -531,6 +644,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                                 Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty()))));
     }
 
+    /**
+     * 将新明细 DTO 列表转换为商品-货位-数量的映射。
+     */
     private Map<Long, Map<Long, Long>> buildStockQtyMapFromDetailDTO(List<IoOrderDetailDTO> detailDTOList) {
         if (detailDTOList == null || detailDTOList.isEmpty()) {
             return Collections.emptyMap();
@@ -541,8 +657,12 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                                 Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty()))));
     }
 
+    /**
+     * 按原单据方向反向回滚库存变化。
+     */
     private void rollbackOrderStock(IoOrder ioOrder, List<IoOrderDetail> oldDetailList, String actionName) {
         List<IoOrderDetailDTO> rollbackDetailList = oldDetailList.stream().map(this::toDetailDTO).toList();
+        // 回滚库存时沿用当前库存明细分组，避免对同一商品重复查库。
         Map<Long, Map<Long, ProductStockDetail>> detailGroupMap = loadStockDetailGroup(rollbackDetailList);
         for (IoOrderDetailDTO detailDTO : rollbackDetailList) {
             Map<Long, ProductStockDetail> productDetailMap = detailGroupMap.computeIfAbsent(
@@ -554,24 +674,31 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                     rollbackDelta, ioOrder.getOrderType());
         }
         for (Map.Entry<Long, Map<Long, ProductStockDetail>> entry : detailGroupMap.entrySet()) {
+            // 每个商品单独重算库存汇总，保证商品表库存与明细一致。
             productStockSummaryService.syncByDetailMap(entry.getKey(), entry.getValue());
         }
     }
 
+    /**
+     * 将历史明细实体转换为库存回滚使用的 DTO。
+     */
     private IoOrderDetailDTO toDetailDTO(IoOrderDetail detail) {
-        IoOrderDetailDTO dto = new IoOrderDetailDTO();
-        dto.setProductId(detail.getProductId());
-        dto.setQty(detail.getQty());
-        dto.setLocationId(detail.getLocationId() == null ? NO_LOCATION_ID : detail.getLocationId());
-        dto.setRemark(detail.getRemark());
-        return dto;
+        return new IoOrderDetailDTO()
+                .setProductId(detail.getProductId())
+                .setQty(detail.getQty())
+                .setLocationId(detail.getLocationId() == null ? NO_LOCATION_ID : detail.getLocationId())
+                .setRemark(detail.getRemark());
     }
 
+    /**
+     * 批量加载涉及商品的库存明细分组。
+     */
     private Map<Long, Map<Long, ProductStockDetail>> loadStockDetailGroup(List<IoOrderDetailDTO> detailDTOList) {
         Set<Long> productIds = detailDTOList.stream().map(IoOrderDetailDTO::getProductId).collect(Collectors.toSet());
         if (productIds.isEmpty()) {
             return new LinkedHashMap<>();
         }
+        // 一次性按商品拉出库存明细，后续库存调整直接在内存映射上操作。
         return productStockDetailService.list(new LambdaQueryWrapper<ProductStockDetail>().in(ProductStockDetail::getProductId, productIds))
                 .stream()
                 .collect(Collectors.groupingBy(ProductStockDetail::getProductId, LinkedHashMap::new,
@@ -579,6 +706,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                                 (left, right) -> left, LinkedHashMap::new)));
     }
 
+    /**
+     * 加载单个商品的库存明细映射。
+     */
     private Map<Long, ProductStockDetail> loadProductStockDetailMap(Long productId) {
         return productStockDetailService.list(new LambdaQueryWrapper<ProductStockDetail>()
                         .eq(ProductStockDetail::getProductId, productId))
@@ -587,6 +717,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                         (left, right) -> left, LinkedHashMap::new));
     }
 
+    /**
+     * 调整指定商品在指定货位上的库存数量。
+     */
     private void changeDetailQty(Map<Long, ProductStockDetail> detailMap, Long productId, Long locationId, Long delta,
                                  Integer orderType) {
         if (delta == 0) {
@@ -599,27 +732,33 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             throw new BaseException(buildBizLabel(orderType) + "失败，商品库存不足");
         }
         if (targetQty == 0) {
-            productStockDetailService.removeById(detail.getId());
+            // 库存归零时直接删除明细记录，避免表里残留无效零库存。
+            productStockDetailService.removeByIdChecked(detail.getId());
             detailMap.remove(locationId);
             return;
         }
         if (detail == null) {
-            ProductStockDetail productStockDetail = new ProductStockDetail();
-            productStockDetail.setProductId(productId);
-            productStockDetail.setLocationId(locationId);
-            productStockDetail.setQty(targetQty);
-            productStockDetailService.save(productStockDetail);
+            // 当前货位尚无库存记录时，按新增明细处理。
+            ProductStockDetail productStockDetail = new ProductStockDetail()
+                    .setProductId(productId)
+                    .setLocationId(locationId)
+                    .setQty(targetQty);
+            productStockDetailService.saveChecked(productStockDetail);
             detailMap.put(locationId, productStockDetail);
             return;
         }
         detail.setQty(targetQty);
-        productStockDetailService.updateById(detail);
+        productStockDetailService.updateByIdChecked(detail);
     }
 
+    /**
+     * 生成同类型出入库单号。
+     */
     private String generateOrderNo(Integer orderType) {
         String prefix = IoBizTypeEnum.INBOUND.matches(orderType)
                 ? INBOUND_ORDER_PREFIX
                 : OUTBOUND_ORDER_PREFIX;
+        // 单号按同类型历史最后一条记录递增生成。
         IoOrder lastOrder = getOne(new LambdaQueryWrapper<IoOrder>()
                 .eq(IoOrder::getOrderType, orderType)
                 .likeRight(IoOrder::getOrderNo, prefix)
@@ -632,6 +771,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         return prefix + String.format("%0" + ORDER_NO_DIGIT_LENGTH + "d", nextNumber);
     }
 
+    /**
+     * 从历史出入库单号中解析流水号部分。
+     */
     private long parseOrderNoNumber(String orderNo, String prefix) {
         if (orderNo == null || !orderNo.startsWith(prefix) || orderNo.length() <= prefix.length()) {
             throw new BaseException("历史出入库单号格式不正确");
@@ -644,27 +786,35 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
     }
 
+    /**
+     * 返回单据类型对应的业务名称。
+     */
     private String buildBizLabel(Integer orderType) {
         return IoBizTypeEnum.getDesc(orderType);
     }
 
+    /**
+     * 组装商品出入库流水展示对象。
+     */
     private StockIoDetailVO buildStockIoDetailVO(IoOrder ioOrder, IoOrderDetail detail, Product product,
                                                      Deliveryman deliveryman,
                                                      Customer customer, Long currentStockQty) {
-        StockIoDetailVO vo = new StockIoDetailVO();
-        vo.setOrderNo(ioOrder.getOrderNo());
-        vo.setOrderId(ioOrder.getId());
-        vo.setOrderType(ioOrder.getOrderType());
-        vo.setOrderTypeName(buildBizLabel(ioOrder.getOrderType()));
-        vo.setBizDate(ioOrder.getBizDate());
-        vo.setQty(detail.getQty());
-        vo.setDeliveryman(deliveryman);
-        vo.setCustomer(customer);
-        vo.setProduct(product);
-        vo.setCurrentStockQty(currentStockQty == null ? 0L : currentStockQty);
-        return vo;
+        return new StockIoDetailVO()
+                .setOrderNo(ioOrder.getOrderNo())
+                .setOrderId(ioOrder.getId())
+                .setOrderType(ioOrder.getOrderType())
+                .setOrderTypeName(buildBizLabel(ioOrder.getOrderType()))
+                .setBizDate(ioOrder.getBizDate())
+                .setQty(detail.getQty())
+                .setDeliveryman(deliveryman)
+                .setCustomer(customer)
+                .setProduct(product)
+                .setCurrentStockQty(currentStockQty == null ? 0L : currentStockQty);
     }
 
+    /**
+     * 构建出入库单分页查询条件。
+     */
     private LambdaQueryWrapper<IoOrder> buildWrapper(IoOrderQuery query) {
         return new LambdaQueryWrapper<IoOrder>()
                 .like(StrUtil.isNotBlank(query.getOrderNo()), IoOrder::getOrderNo, query.getOrderNo())
@@ -680,6 +830,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .orderByDesc(IoOrder::getId);
     }
 
+    /**
+     * 批量查询并组装出入库单明细。
+     */
     private Map<Long, List<IoOrderDetailVO>> buildDetailMap(List<Long> orderIds) {
         if (orderIds == null || orderIds.isEmpty()) {
             return Collections.emptyMap();
@@ -691,6 +844,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             return Collections.emptyMap();
         }
 
+        // 商品详情和货位编码都按批量方式回填，避免明细列表逐条查字典。
         Set<Long> productIds = detailList.stream()
                 .map(IoOrderDetail::getProductId)
                 .filter(Objects::nonNull)
@@ -710,25 +864,31 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .collect(Collectors.groupingBy(IoOrderDetailVO::getOrderId, LinkedHashMap::new, Collectors.toList()));
     }
 
+    /**
+     * 组装单条出入库明细展示对象。
+     */
     private IoOrderDetailVO buildDetailVO(IoOrderDetail detail, ProductPageVO product, String locationCode) {
         IoOrderDetailVO vo = new IoOrderDetailVO();
-        vo.setId(detail.getId());
-        vo.setOrderId(detail.getOrderId());
-        vo.setOrderType(detail.getOrderType());
-        vo.setProductId(detail.getProductId());
-        vo.setQty(detail.getQty());
-        vo.setLocationId(detail.getLocationId());
-        vo.setRemark(detail.getRemark());
-        vo.setPickedQty(detail.getPickedQty());
-        vo.setCreateTime(detail.getCreateTime());
-        vo.setUpdateTime(detail.getUpdateTime());
-        vo.setCreateBy(detail.getCreateBy());
-        vo.setUpdateBy(detail.getUpdateBy());
-        vo.setProduct(product);
-        vo.setLocationCode(locationCode);
+        vo.setId(detail.getId())
+                .setOrderId(detail.getOrderId())
+                .setOrderType(detail.getOrderType())
+                .setProductId(detail.getProductId())
+                .setQty(detail.getQty())
+                .setLocationId(detail.getLocationId())
+                .setRemark(detail.getRemark())
+                .setPickedQty(detail.getPickedQty());
+        vo.setCreateTime(detail.getCreateTime())
+                .setUpdateTime(detail.getUpdateTime())
+                .setCreateBy(detail.getCreateBy())
+                .setUpdateBy(detail.getUpdateBy());
+        vo.setProduct(product)
+                .setLocationCode(locationCode);
         return vo;
     }
 
+    /**
+     * 将货位 ID 转成可展示的货位编码。
+     */
     private String buildLocationCode(Long locationId, Map<Long, ProductLocation> locationMap) {
         if (Objects.equals(locationId, NO_LOCATION_ID)) {
             return NO_LOCATION_CODE;
@@ -737,41 +897,47 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         return location == null ? null : location.getCode();
     }
 
+    /**
+     * 组装出入库单分页展示对象。
+     */
     private IoOrderPageVO buildPageVO(IoOrder ioOrder, Map<Long, Deliveryman> deliverymanMap,
                                       Map<Long, Customer> customerMap, Map<Long, Salesman> salesmanMap,
                                       Map<Long, IoType> ioTypeMap,
                                       Map<Long, String> applyNoMap, List<IoOrderDetailVO> detailList) {
         IoOrderPageVO vo = new IoOrderPageVO();
-        vo.setId(ioOrder.getId());
-        vo.setOrderNo(ioOrder.getOrderNo());
-        vo.setOrderType(ioOrder.getOrderType());
-        vo.setApplyId(ioOrder.getApplyId());
-        vo.setBizDate(ioOrder.getBizDate());
-        vo.setDeliverymanId(ioOrder.getDeliverymanId());
-        vo.setCustomerId(ioOrder.getCustomerId());
-        vo.setSalesmanId(ioOrder.getSalesmanId());
-        vo.setIoTypeId(ioOrder.getIoTypeId());
-        vo.setRemark(ioOrder.getRemark());
-        vo.setPickingStatus(ioOrder.getPickingStatus());
-        vo.setCreateTime(ioOrder.getCreateTime());
-        vo.setUpdateTime(ioOrder.getUpdateTime());
-        vo.setCreateBy(ioOrder.getCreateBy());
-        vo.setUpdateBy(ioOrder.getUpdateBy());
-        vo.setOrderTypeName(buildBizLabel(ioOrder.getOrderType()));
-        vo.setApplyNo(ioOrder.getApplyId() == null ? null : applyNoMap.get(ioOrder.getApplyId()));
+        vo.setId(ioOrder.getId())
+                .setOrderNo(ioOrder.getOrderNo())
+                .setOrderType(ioOrder.getOrderType())
+                .setApplyId(ioOrder.getApplyId())
+                .setBizDate(ioOrder.getBizDate())
+                .setDeliverymanId(ioOrder.getDeliverymanId())
+                .setCustomerId(ioOrder.getCustomerId())
+                .setSalesmanId(ioOrder.getSalesmanId())
+                .setIoTypeId(ioOrder.getIoTypeId())
+                .setRemark(ioOrder.getRemark())
+                .setPickingStatus(ioOrder.getPickingStatus());
+        vo.setCreateTime(ioOrder.getCreateTime())
+                .setUpdateTime(ioOrder.getUpdateTime())
+                .setCreateBy(ioOrder.getCreateBy())
+                .setUpdateBy(ioOrder.getUpdateBy());
         Deliveryman deliveryman = deliverymanMap.get(ioOrder.getDeliverymanId());
-        vo.setDeliveryman(deliveryman);
         Customer customer = customerMap.get(ioOrder.getCustomerId());
-        vo.setCustomer(customer);
         Salesman salesman = salesmanMap.get(ioOrder.getSalesmanId());
-        vo.setSalesman(salesman);
         IoType ioType = ioTypeMap.get(ioOrder.getIoTypeId());
-        vo.setIoTypeName(ioType == null ? null : ioType.getName());
-        vo.setPickingStatusName(buildPickingStatusName(ioOrder));
-        vo.setDetailList(detailList == null ? List.of() : detailList);
+        vo.setOrderTypeName(buildBizLabel(ioOrder.getOrderType()))
+                .setApplyNo(ioOrder.getApplyId() == null ? null : applyNoMap.get(ioOrder.getApplyId()))
+                .setDeliveryman(deliveryman)
+                .setCustomer(customer)
+                .setSalesman(salesman)
+                .setIoTypeName(ioType == null ? null : ioType.getName())
+                .setPickingStatusName(buildPickingStatusName(ioOrder))
+                .setDetailList(detailList == null ? List.of() : detailList);
         return vo;
     }
 
+    /**
+     * 返回出库单拣货状态名称，入库单不展示该字段。
+     */
     private String buildPickingStatusName(IoOrder ioOrder) {
         if (IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType())) {
             return null;

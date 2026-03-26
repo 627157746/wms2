@@ -15,40 +15,67 @@ import lombok.EqualsAndHashCode;
 
 /**
  * 业务员
+ *
+ * @author zhb
+ * @since 2026/3/26
  */
 @Schema(description = "业务员")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "salesman")
 public class Salesman extends BaseModel implements Serializable {
+    /**
+     * 序列化版本号。
+     */
     private static final long serialVersionUID = 1L;
 
+    /**
+     * 主键 ID。
+     */
     @TableId(value = "id", type = IdType.AUTO)
     @Schema(description = "主键ID")
     @NotNull(groups = Update.class, message = "ID不能为空")
     private Long id;
 
+    /**
+     * 名称。
+     */
     @TableField(value = "`name`")
     @Schema(description = "名称")
     @NotBlank(message = "业务员名称不能为空")
     private String name;
 
+    /**
+     * 手机。
+     */
     @TableField(value = "phone")
     @Schema(description = "手机")
     private String phone;
 
+    /**
+     * 座机。
+     */
     @TableField(value = "tel")
     @Schema(description = "座机")
     private String tel;
 
+    /**
+     * 微信号。
+     */
     @TableField(value = "wechat")
     @Schema(description = "微信号")
     private String wechat;
 
+    /**
+     * 地址。
+     */
     @TableField(value = "address")
     @Schema(description = "地址")
     private String address;
 
+    /**
+     * 备注。
+     */
     @TableField(value = "remark")
     @Schema(description = "备注")
     private String remark;

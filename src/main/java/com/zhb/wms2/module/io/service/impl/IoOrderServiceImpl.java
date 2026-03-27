@@ -801,7 +801,13 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             throw new BaseException(buildBizLabel(orderType) + "失败，商品库存不足");
         }
         if (targetQty == 0) {
-            // 库存归零时直接删除明细记录，避免表里残留无效零库存。
+            // 出库扣到最后一条库存时保留 0 库存记录，便于后续继续沿用历史货位。
+            if (shouldKeepZeroStockDetail(detailMap, detail, orderType)) {
+                detail.setQty(0L);
+                productStockDetailService.updateByIdChecked(detail);
+                return;
+            }
+            // 非最后库存归零时继续删除明细，避免同商品残留多条 0 库存记录。
             productStockDetailService.removeByIdChecked(detail.getId());
             detailMap.remove(locationId);
             return;
@@ -818,6 +824,22 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
         detail.setQty(targetQty);
         productStockDetailService.updateByIdChecked(detail);
+    }
+
+    /**
+     * 判断是否需要保留最后一条 0 库存明细。
+     */
+    private boolean shouldKeepZeroStockDetail(Map<Long, ProductStockDetail> detailMap, ProductStockDetail currentDetail,
+                                              Integer orderType) {
+        if (currentDetail == null || !IoBizTypeEnum.OUTBOUND.matches(orderType)) {
+            return false;
+        }
+        return detailMap.values().stream()
+                .filter(Objects::nonNull)
+                .filter(detail -> !Objects.equals(detail.getLocationId(), currentDetail.getLocationId()))
+                .map(ProductStockDetail::getQty)
+                .filter(Objects::nonNull)
+                .noneMatch(qty -> qty > 0);
     }
 
     /**

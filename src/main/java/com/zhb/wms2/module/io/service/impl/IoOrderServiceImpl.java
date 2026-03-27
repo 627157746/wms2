@@ -103,6 +103,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 ? Map.of() : dictMap.getDeliverymanMap();
         Map<Long, Customer> customerMap = dictMap.getCustomerMap() == null
                 ? Map.of() : dictMap.getCustomerMap();
+        Map<Long, Warehouse> warehouseMap = dictMap.getWarehouseMap() == null
+                ? Map.of() : dictMap.getWarehouseMap();
         Map<Long, Salesman> salesmanMap = dictMap.getSalesmanMap() == null
                 ? Map.of() : dictMap.getSalesmanMap();
         Map<Long, IoType> ioTypeMap = dictMap.getIoTypeMap() == null
@@ -117,8 +119,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .collect(Collectors.toMap(IoApply::getId, IoApply::getApplyNo,
                         (left, right) -> left, LinkedHashMap::new));
         Map<Long, List<IoOrderDetailVO>> detailMap = buildDetailMap(recordList.stream().map(IoOrder::getId).toList());
-        return page.convert(ioOrder -> buildPageVO(ioOrder, deliverymanMap, customerMap, salesmanMap, ioTypeMap, applyNoMap,
-                detailMap.get(ioOrder.getId())));
+        return page.convert(ioOrder -> buildPageVO(ioOrder, deliverymanMap, customerMap, warehouseMap,
+                salesmanMap, ioTypeMap, applyNoMap, detailMap.get(ioOrder.getId())));
     }
 
     /**
@@ -137,6 +139,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 ? Map.of() : dictMap.getDeliverymanMap();
         Map<Long, Customer> customerMap = dictMap.getCustomerMap() == null
                 ? Map.of() : dictMap.getCustomerMap();
+        Map<Long, Warehouse> warehouseMap = dictMap.getWarehouseMap() == null
+                ? Map.of() : dictMap.getWarehouseMap();
         Map<Long, Salesman> salesmanMap = dictMap.getSalesmanMap() == null
                 ? Map.of() : dictMap.getSalesmanMap();
         Map<Long, IoType> ioTypeMap = dictMap.getIoTypeMap() == null
@@ -147,7 +151,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .collect(Collectors.toMap(IoApply::getId, IoApply::getApplyNo,
                         (left, right) -> left, LinkedHashMap::new));
         Map<Long, List<IoOrderDetailVO>> detailMap = buildDetailMap(List.of(id));
-        return buildPageVO(ioOrder, deliverymanMap, customerMap, salesmanMap, ioTypeMap, applyNoMap, detailMap.get(id));
+        return buildPageVO(ioOrder, deliverymanMap, customerMap, warehouseMap, salesmanMap, ioTypeMap,
+                applyNoMap, detailMap.get(id));
     }
 
     /**
@@ -237,7 +242,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
         validateApplyCanGenerate(ioApply);
         validateHeaderRefs(ioApply.getOrderType(), ioApply.getDeliverymanId(), ioApply.getCustomerId(),
-                ioApply.getSalesmanId(), ioApply.getIoTypeId());
+                ioApply.getWarehouseId(), ioApply.getSalesmanId(), ioApply.getIoTypeId());
         List<IoApplyDetail> applyDetailList = ioApplyDetailService.list(
                 new LambdaQueryWrapper<IoApplyDetail>().eq(IoApplyDetail::getApplyId, applyId));
         if (applyDetailList.isEmpty()) {
@@ -250,9 +255,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         validateApplyGenerateDetails(ioApply.getOrderType(), applyDetailList, detailDTOList);
 
         IoOrder ioOrder = createOrder(ioApply.getOrderType(), ioApply.getId(), dto.getBizDate(),
-                ioApply.getDeliverymanId(), ioApply.getCustomerId(), ioApply.getSalesmanId(),
-                ioApply.getIoTypeId(), dto.getRemark(),
-                detailDTOList);
+                ioApply.getDeliverymanId(), ioApply.getCustomerId(), ioApply.getWarehouseId(),
+                ioApply.getSalesmanId(), ioApply.getIoTypeId(), dto.getRemark(), detailDTOList);
         // 生成单据成功后，把申请状态推进为已执行完成。
         ioApply.setIoStatus(IoStatusEnum.DONE.getCode());
         ioApplyMapper.updateById(ioApply);
@@ -266,14 +270,14 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     @Transactional(rollbackFor = Exception.class)
     public Long saveOrder(IoOrderCreateDTO dto) {
         // 手工单据直接校验单头和明细引用，不依赖申请单。
-        validateHeaderRefs(dto.getOrderType(), dto.getDeliverymanId(), dto.getCustomerId(), dto.getSalesmanId(),
-                dto.getIoTypeId());
+        validateHeaderRefs(dto.getOrderType(), dto.getDeliverymanId(), dto.getCustomerId(), dto.getWarehouseId(),
+                dto.getSalesmanId(), dto.getIoTypeId());
         List<IoOrderDetailDTO> detailDTOList = dto.getDetailList();
         validateDetailRefs(detailDTOList);
         return createOrder(dto.getOrderType(), null, dto.getBizDate(), dto.getDeliverymanId(),
                 IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getCustomerId() : null,
-                dto.getSalesmanId(),
-                dto.getIoTypeId(), dto.getRemark(), detailDTOList).getId();
+                IoBizTypeEnum.INBOUND.matches(dto.getOrderType()) ? dto.getWarehouseId() : null,
+                dto.getSalesmanId(), dto.getIoTypeId(), dto.getRemark(), detailDTOList).getId();
     }
 
     /**
@@ -287,8 +291,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             throw new BaseException("出入库单不存在");
         }
 
-        validateHeaderRefs(ioOrder.getOrderType(), dto.getDeliverymanId(), dto.getCustomerId(), dto.getSalesmanId(),
-                dto.getIoTypeId());
+        validateHeaderRefs(ioOrder.getOrderType(), dto.getDeliverymanId(), dto.getCustomerId(), dto.getWarehouseId(),
+                dto.getSalesmanId(), dto.getIoTypeId());
         List<IoOrderDetailDTO> newDetailDTOList = dto.getDetailList();
         validateDetailRefs(newDetailDTOList);
 
@@ -305,6 +309,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .setIoTypeId(dto.getIoTypeId())
                 .setRemark(dto.getRemark())
                 .setCustomerId(IoBizTypeEnum.OUTBOUND.matches(ioOrder.getOrderType()) ? dto.getCustomerId() : null)
+                .setWarehouseId(IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType()) ? dto.getWarehouseId() : null)
                 .setSalesmanId(dto.getSalesmanId());
         if (IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType())) {
             ioOrder.setPickingStatus(PickingStatusEnum.UNPICKED.getCode());
@@ -403,7 +408,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      * 创建出入库单实体并落库，同时同步库存变化。
      */
     private IoOrder createOrder(Integer orderType, Long applyId, java.time.LocalDate bizDate, Long deliverymanId,
-                                Long customerId, Long salesmanId, Long ioTypeId, String remark,
+                                Long customerId, Long warehouseId, Long salesmanId, Long ioTypeId, String remark,
                                 List<IoOrderDetailDTO> detailDTOList) {
         // 单据实体先组装完整，再统一交给保存和库存调整逻辑处理。
         IoOrder ioOrder = new IoOrder()
@@ -413,6 +418,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .setBizDate(bizDate)
                 .setDeliverymanId(deliverymanId)
                 .setCustomerId(customerId)
+                .setWarehouseId(warehouseId)
                 .setSalesmanId(salesmanId)
                 .setIoTypeId(ioTypeId)
                 .setRemark(remark)
@@ -459,12 +465,12 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     /**
      * 校验单头关联的送货员、客户、业务员和出入库类型。
      */
-    private void validateHeaderRefs(Integer orderType, Long deliverymanId, Long customerId, Long salesmanId,
-                                    Long ioTypeId) {
+    private void validateHeaderRefs(Integer orderType, Long deliverymanId, Long customerId, Long warehouseId,
+                                    Long salesmanId, Long ioTypeId) {
         validateDeliveryman(orderType, deliverymanId);
         validateIoType(orderType, ioTypeId);
         if (IoBizTypeEnum.OUTBOUND.matches(orderType)) {
-            // 出库单必须具备客户和业务员，入库单则允许为空。
+            // 出库单必须具备客户和业务员。
             if (customerId == null) {
                 throw new BaseException("出库单客户不能为空");
             }
@@ -473,8 +479,15 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 throw new BaseException("出库单业务员不能为空");
             }
             validateSalesman(salesmanId);
-        } else if (salesmanId != null) {
-            validateSalesman(salesmanId);
+        } else {
+            // 入库单必须绑定仓库，业务员按现有业务规则保留可选。
+            if (warehouseId == null) {
+                throw new BaseException("入库单仓库不能为空");
+            }
+            validateWarehouse(warehouseId);
+            if (salesmanId != null) {
+                validateSalesman(salesmanId);
+            }
         }
     }
 
@@ -517,6 +530,19 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 : dictMap.getSalesmanMap().get(salesmanId);
         if (salesman == null) {
             throw new BaseException("业务员不存在");
+        }
+    }
+
+    /**
+     * 校验仓库存在。
+     */
+    private void validateWarehouse(Long warehouseId) {
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Warehouse warehouse = dictMap.getWarehouseMap() == null
+                ? null
+                : dictMap.getWarehouseMap().get(warehouseId);
+        if (warehouse == null) {
+            throw new BaseException("仓库不存在");
         }
     }
 
@@ -820,6 +846,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .le(query.getBizDateEnd() != null, IoOrder::getBizDate, query.getBizDateEnd())
                 .eq(query.getDeliverymanId() != null, IoOrder::getDeliverymanId, query.getDeliverymanId())
                 .eq(query.getCustomerId() != null, IoOrder::getCustomerId, query.getCustomerId())
+                .eq(query.getWarehouseId() != null, IoOrder::getWarehouseId, query.getWarehouseId())
                 .eq(query.getSalesmanId() != null, IoOrder::getSalesmanId, query.getSalesmanId())
                 .eq(query.getIoTypeId() != null, IoOrder::getIoTypeId, query.getIoTypeId())
                 .eq(query.getApplyId() != null, IoOrder::getApplyId, query.getApplyId())
@@ -898,7 +925,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      * 组装出入库单分页展示对象。
      */
     private IoOrderPageVO buildPageVO(IoOrder ioOrder, Map<Long, Deliveryman> deliverymanMap,
-                                      Map<Long, Customer> customerMap, Map<Long, Salesman> salesmanMap,
+                                      Map<Long, Customer> customerMap, Map<Long, Warehouse> warehouseMap,
+                                      Map<Long, Salesman> salesmanMap,
                                       Map<Long, IoType> ioTypeMap,
                                       Map<Long, String> applyNoMap, List<IoOrderDetailVO> detailList) {
         IoOrderPageVO vo = new IoOrderPageVO();
@@ -909,6 +937,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .setBizDate(ioOrder.getBizDate())
                 .setDeliverymanId(ioOrder.getDeliverymanId())
                 .setCustomerId(ioOrder.getCustomerId())
+                .setWarehouseId(ioOrder.getWarehouseId())
                 .setSalesmanId(ioOrder.getSalesmanId())
                 .setIoTypeId(ioOrder.getIoTypeId())
                 .setRemark(ioOrder.getRemark())
@@ -919,12 +948,14 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .setUpdateBy(ioOrder.getUpdateBy());
         Deliveryman deliveryman = deliverymanMap.get(ioOrder.getDeliverymanId());
         Customer customer = customerMap.get(ioOrder.getCustomerId());
+        Warehouse warehouse = warehouseMap.get(ioOrder.getWarehouseId());
         Salesman salesman = salesmanMap.get(ioOrder.getSalesmanId());
         IoType ioType = ioTypeMap.get(ioOrder.getIoTypeId());
         vo.setOrderTypeName(buildBizLabel(ioOrder.getOrderType()))
                 .setApplyNo(ioOrder.getApplyId() == null ? null : applyNoMap.get(ioOrder.getApplyId()))
                 .setDeliveryman(deliveryman)
                 .setCustomer(customer)
+                .setWarehouse(warehouse)
                 .setSalesman(salesman)
                 .setIoTypeName(ioType == null ? null : ioType.getName())
                 .setPickingStatusName(buildPickingStatusName(ioOrder))

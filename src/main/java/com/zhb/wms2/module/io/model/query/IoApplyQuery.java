@@ -58,6 +58,12 @@ public class IoApplyQuery extends BaseQuery {
     private Long customerId;
 
     /**
+     * 仓库 ID。
+     */
+    @Schema(description = "仓库ID")
+    private Long warehouseId;
+
+    /**
      * 业务员 ID。
      */
     @Schema(description = "业务员ID")

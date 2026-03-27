@@ -52,6 +52,13 @@ public class IoOrderUpdateDTO {
     private Long customerId;
 
     /**
+     * 仓库 ID，仅入库使用。
+     */
+    @Schema(description = "仓库ID，仅入库使用")
+    @Min(value = 1, message = "仓库不能为空")
+    private Long warehouseId;
+
+    /**
      * 业务员 ID。
      */
     @Schema(description = "业务员ID")

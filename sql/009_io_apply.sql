@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS io_apply (
   apply_date DATE NOT NULL COMMENT '申请日期',
   deliveryman_id BIGINT NULL COMMENT '送货员ID',
   customer_id BIGINT NULL COMMENT '客户ID，仅出库使用',
+  warehouse_id BIGINT NULL COMMENT '仓库ID，仅入库使用',
   salesman_id BIGINT NULL COMMENT '业务员ID',
   io_type_id BIGINT NULL COMMENT '出入库类型ID',
   remark VARCHAR(255) NULL COMMENT '备注',
@@ -22,3 +23,4 @@ CREATE TABLE IF NOT EXISTS io_apply (
 CREATE UNIQUE INDEX uk_io_apply_no ON io_apply(apply_no, delete_flag);
 CREATE INDEX idx_io_apply_type_date ON io_apply(order_type, apply_date);
 CREATE INDEX idx_io_apply_status ON io_apply(order_type, approve_status, io_status);
+CREATE INDEX idx_io_apply_warehouse ON io_apply(order_type, warehouse_id);

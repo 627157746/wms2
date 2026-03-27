@@ -15,6 +15,7 @@ import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
 import com.zhb.wms2.module.base.model.entity.IoType;
 import com.zhb.wms2.module.base.model.entity.Salesman;
+import com.zhb.wms2.module.base.model.entity.Warehouse;
 import com.zhb.wms2.module.base.service.BaseDictMapService;
 import com.zhb.wms2.module.io.mapper.IoApplyMapper;
 import com.zhb.wms2.module.io.mapper.IoOrderMapper;
@@ -89,13 +90,15 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 ? Map.of() : dictMap.getDeliverymanMap();
         Map<Long, Customer> customerMap = dictMap.getCustomerMap() == null
                 ? Map.of() : dictMap.getCustomerMap();
+        Map<Long, Warehouse> warehouseMap = dictMap.getWarehouseMap() == null
+                ? Map.of() : dictMap.getWarehouseMap();
         Map<Long, Salesman> salesmanMap = dictMap.getSalesmanMap() == null
                 ? Map.of() : dictMap.getSalesmanMap();
         Map<Long, IoType> ioTypeMap = dictMap.getIoTypeMap() == null
                 ? Map.of() : dictMap.getIoTypeMap();
         Map<Long, List<IoApplyDetailVO>> detailMap = buildDetailMap(recordList.stream().map(IoApply::getId).toList());
-        return page.convert(ioApply -> buildPageVO(ioApply, deliverymanMap, customerMap, salesmanMap, ioTypeMap,
-                detailMap.get(ioApply.getId())));
+        return page.convert(ioApply -> buildPageVO(ioApply, deliverymanMap, customerMap, warehouseMap,
+                salesmanMap, ioTypeMap, detailMap.get(ioApply.getId())));
     }
 
     /**
@@ -114,12 +117,15 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 ? Map.of() : dictMap.getDeliverymanMap();
         Map<Long, Customer> customerMap = dictMap.getCustomerMap() == null
                 ? Map.of() : dictMap.getCustomerMap();
+        Map<Long, Warehouse> warehouseMap = dictMap.getWarehouseMap() == null
+                ? Map.of() : dictMap.getWarehouseMap();
         Map<Long, Salesman> salesmanMap = dictMap.getSalesmanMap() == null
                 ? Map.of() : dictMap.getSalesmanMap();
         Map<Long, IoType> ioTypeMap = dictMap.getIoTypeMap() == null
                 ? Map.of() : dictMap.getIoTypeMap();
         Map<Long, List<IoApplyDetailVO>> detailMap = buildDetailMap(List.of(id));
-        return buildPageVO(ioApply, deliverymanMap, customerMap, salesmanMap, ioTypeMap, detailMap.get(id));
+        return buildPageVO(ioApply, deliverymanMap, customerMap, warehouseMap, salesmanMap, ioTypeMap,
+                detailMap.get(id));
     }
 
     /**
@@ -130,13 +136,14 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
     public Long saveApply(IoApplyCreateDTO dto) {
         validateBizData(dto);
 
-        // 申请单头的客户和业务员仅在出库场景下必填。
+        // 出库场景绑定客户，入库场景绑定仓库，业务员按现有业务规则保留可选。
         IoApply ioApply = new IoApply()
                 .setApplyNo(generateApplyNo(dto.getOrderType()))
                 .setOrderType(dto.getOrderType())
                 .setApplyDate(dto.getApplyDate())
                 .setDeliverymanId(dto.getDeliverymanId())
                 .setCustomerId(IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getCustomerId() : null)
+                .setWarehouseId(IoBizTypeEnum.INBOUND.matches(dto.getOrderType()) ? dto.getWarehouseId() : null)
                 .setSalesmanId(dto.getSalesmanId())
                 .setIoTypeId(dto.getIoTypeId())
                 .setRemark(dto.getRemark())
@@ -173,6 +180,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 .setApplyDate(dto.getApplyDate())
                 .setDeliverymanId(dto.getDeliverymanId())
                 .setCustomerId(IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getCustomerId() : null)
+                .setWarehouseId(IoBizTypeEnum.INBOUND.matches(dto.getOrderType()) ? dto.getWarehouseId() : null)
                 .setSalesmanId(dto.getSalesmanId())
                 .setIoTypeId(dto.getIoTypeId())
                 .setRemark(dto.getRemark());
@@ -260,8 +268,14 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 throw new BaseException("出库申请业务员不能为空");
             }
             validateSalesman(dto.getSalesmanId());
-        } else if (dto.getSalesmanId() != null) {
-            validateSalesman(dto.getSalesmanId());
+        } else {
+            if (dto.getWarehouseId() == null) {
+                throw new BaseException("入库申请仓库不能为空");
+            }
+            validateWarehouse(dto.getWarehouseId());
+            if (dto.getSalesmanId() != null) {
+                validateSalesman(dto.getSalesmanId());
+            }
         }
         validateProducts(dto.getDetailList());
     }
@@ -305,6 +319,19 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 : dictMap.getSalesmanMap().get(salesmanId);
         if (salesman == null) {
             throw new BaseException("业务员不存在");
+        }
+    }
+
+    /**
+     * 校验仓库存在。
+     */
+    private void validateWarehouse(Long warehouseId) {
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Warehouse warehouse = dictMap.getWarehouseMap() == null
+                ? null
+                : dictMap.getWarehouseMap().get(warehouseId);
+        if (warehouse == null) {
+            throw new BaseException("仓库不存在");
         }
     }
 
@@ -445,6 +472,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 .le(query.getApplyDateEnd() != null, IoApply::getApplyDate, query.getApplyDateEnd())
                 .eq(query.getDeliverymanId() != null, IoApply::getDeliverymanId, query.getDeliverymanId())
                 .eq(query.getCustomerId() != null, IoApply::getCustomerId, query.getCustomerId())
+                .eq(query.getWarehouseId() != null, IoApply::getWarehouseId, query.getWarehouseId())
                 .eq(query.getSalesmanId() != null, IoApply::getSalesmanId, query.getSalesmanId())
                 .eq(query.getIoTypeId() != null, IoApply::getIoTypeId, query.getIoTypeId())
                 .eq(query.getApproveStatus() != null, IoApply::getApproveStatus, query.getApproveStatus())
@@ -502,7 +530,8 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
      * 组装申请单分页展示对象。
      */
     private IoApplyPageVO buildPageVO(IoApply ioApply, Map<Long, Deliveryman> deliverymanMap,
-                                      Map<Long, Customer> customerMap, Map<Long, Salesman> salesmanMap,
+                                      Map<Long, Customer> customerMap, Map<Long, Warehouse> warehouseMap,
+                                      Map<Long, Salesman> salesmanMap,
                                       Map<Long, IoType> ioTypeMap,
                                       List<IoApplyDetailVO> detailList) {
         IoApplyPageVO vo = new IoApplyPageVO();
@@ -512,6 +541,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 .setApplyDate(ioApply.getApplyDate())
                 .setDeliverymanId(ioApply.getDeliverymanId())
                 .setCustomerId(ioApply.getCustomerId())
+                .setWarehouseId(ioApply.getWarehouseId())
                 .setSalesmanId(ioApply.getSalesmanId())
                 .setIoTypeId(ioApply.getIoTypeId())
                 .setRemark(ioApply.getRemark())
@@ -524,12 +554,14 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 .setUpdateBy(ioApply.getUpdateBy());
         Deliveryman deliveryman = deliverymanMap.get(ioApply.getDeliverymanId());
         Customer customer = customerMap.get(ioApply.getCustomerId());
+        Warehouse warehouse = warehouseMap.get(ioApply.getWarehouseId());
         Salesman salesman = salesmanMap.get(ioApply.getSalesmanId());
         IoType ioType = ioTypeMap.get(ioApply.getIoTypeId());
         // 展示层字段统一在这里派生，避免控制层重复判断枚举和字典名称。
         vo.setOrderTypeName(buildBizLabel(ioApply.getOrderType()))
                 .setDeliveryman(deliveryman)
                 .setCustomer(customer)
+                .setWarehouse(warehouse)
                 .setSalesman(salesman)
                 .setIoTypeName(ioType == null ? null : ioType.getName())
                 .setApproveStatusName(ApproveStatusEnum.getDesc(ioApply.getApproveStatus()))

@@ -3,6 +3,7 @@ package com.zhb.wms2.module.io.model.vo;
 import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
 import com.zhb.wms2.module.base.model.entity.Salesman;
+import com.zhb.wms2.module.base.model.entity.Warehouse;
 import com.zhb.wms2.module.io.model.entity.IoApply;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -41,6 +42,12 @@ public class IoApplyPageVO extends IoApply {
      */
     @Schema(description = "客户信息")
     private Customer customer;
+
+    /**
+     * 仓库信息。
+     */
+    @Schema(description = "仓库信息")
+    private Warehouse warehouse;
 
     /**
      * 业务员信息。

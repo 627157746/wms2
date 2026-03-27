@@ -79,6 +79,13 @@ public class IoOrder extends BaseModel implements Serializable {
     private Long customerId;
 
     /**
+     * 仓库 ID，仅入库使用。
+     */
+    @TableField(value = "warehouse_id")
+    @Schema(description = "仓库ID，仅入库使用")
+    private Long warehouseId;
+
+    /**
      * 业务员 ID。
      */
     @TableField(value = "salesman_id")

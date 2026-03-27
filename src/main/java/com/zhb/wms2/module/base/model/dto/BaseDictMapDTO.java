@@ -7,6 +7,7 @@ import com.zhb.wms2.module.base.model.entity.ProductCategory;
 import com.zhb.wms2.module.base.model.entity.ProductLocation;
 import com.zhb.wms2.module.base.model.entity.ProductUnit;
 import com.zhb.wms2.module.base.model.entity.Salesman;
+import com.zhb.wms2.module.base.model.entity.Warehouse;
 import java.util.Map;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -55,4 +56,9 @@ public class BaseDictMapDTO {
      * 商品单位映射。
      */
     private Map<Long, ProductUnit> productUnitMap;
+
+    /**
+     * 仓库映射。
+     */
+    private Map<Long, Warehouse> warehouseMap;
 }

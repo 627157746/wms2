@@ -54,6 +54,11 @@ public class BaseDictMapStore {
     private volatile Map<Long, ProductUnit> productUnitMap;
 
     /**
+     * 仓库字典缓存。
+     */
+    private volatile Map<Long, Warehouse> warehouseMap;
+
+    /**
      * 清理客户字典缓存。
      */
     public void clearCustomerMap() {
@@ -100,5 +105,12 @@ public class BaseDictMapStore {
      */
     public void clearProductUnitMap() {
         this.productUnitMap = null;
+    }
+
+    /**
+     * 清理仓库字典缓存。
+     */
+    public void clearWarehouseMap() {
+        this.warehouseMap = null;
     }
 }

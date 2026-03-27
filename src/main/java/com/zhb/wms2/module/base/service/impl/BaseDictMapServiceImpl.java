@@ -8,6 +8,7 @@ import com.zhb.wms2.module.base.mapper.ProductCategoryMapper;
 import com.zhb.wms2.module.base.mapper.ProductLocationMapper;
 import com.zhb.wms2.module.base.mapper.ProductUnitMapper;
 import com.zhb.wms2.module.base.mapper.SalesmanMapper;
+import com.zhb.wms2.module.base.mapper.WarehouseMapper;
 import com.zhb.wms2.module.base.model.dto.BaseDictMapDTO;
 import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
@@ -16,6 +17,7 @@ import com.zhb.wms2.module.base.model.entity.ProductCategory;
 import com.zhb.wms2.module.base.model.entity.ProductLocation;
 import com.zhb.wms2.module.base.model.entity.ProductUnit;
 import com.zhb.wms2.module.base.model.entity.Salesman;
+import com.zhb.wms2.module.base.model.entity.Warehouse;
 import com.zhb.wms2.module.base.service.BaseDictMapService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
 import java.util.Collections;
@@ -43,6 +45,7 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
     private final ProductCategoryMapper productCategoryMapper;
     private final ProductLocationMapper productLocationMapper;
     private final ProductUnitMapper productUnitMapper;
+    private final WarehouseMapper warehouseMapper;
     private final BaseDictMapStore baseDictMapStore;
 
     /**
@@ -58,7 +61,8 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
                 .setIoTypeMap(getIoTypeMap())
                 .setProductCategoryMap(getProductCategoryMap())
                 .setProductLocationMap(getProductLocationMap())
-                .setProductUnitMap(getProductUnitMap());
+                .setProductUnitMap(getProductUnitMap())
+                .setWarehouseMap(getWarehouseMap());
     }
 
     /**
@@ -198,6 +202,26 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
                 baseDictMapStore.setProductUnitMap(productUnitMap);
             }
             return productUnitMap;
+        }
+    }
+
+    /**
+     * 获取仓库字典缓存，不存在时从数据库加载。
+     */
+    private Map<Long, Warehouse> getWarehouseMap() {
+        Map<Long, Warehouse> warehouseMap = baseDictMapStore.getWarehouseMap();
+        if (warehouseMap != null) {
+            return warehouseMap;
+        }
+        synchronized (baseDictMapStore) {
+            // 双重检查避免并发场景下重复回源数据库。
+            warehouseMap = baseDictMapStore.getWarehouseMap();
+            if (warehouseMap == null) {
+                warehouseMap = buildMap(warehouseMapper.selectList(new LambdaQueryWrapper<Warehouse>()
+                        .orderByDesc(Warehouse::getId)), Warehouse::getId);
+                baseDictMapStore.setWarehouseMap(warehouseMap);
+            }
+            return warehouseMap;
         }
     }
 

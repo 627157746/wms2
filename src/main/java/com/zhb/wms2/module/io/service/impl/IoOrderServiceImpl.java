@@ -658,8 +658,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .setProductId(detailDTO.getProductId())
                 .setQty(detailDTO.getQty())
                 .setLocationId(detailDTO.getLocationId())
-                .setRemark(detailDTO.getRemark())
-                .setPickedQty(0L);
+                .setRemark(detailDTO.getRemark());
     }
 
     /**
@@ -969,8 +968,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .setProductId(detail.getProductId())
                 .setQty(detail.getQty())
                 .setLocationId(detail.getLocationId())
-                .setRemark(detail.getRemark())
-                .setPickedQty(detail.getPickedQty());
+                .setRemark(detail.getRemark());
         vo.setCreateTime(detail.getCreateTime())
                 .setUpdateTime(detail.getUpdateTime())
                 .setCreateBy(detail.getCreateBy())

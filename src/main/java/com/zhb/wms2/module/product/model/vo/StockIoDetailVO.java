@@ -2,6 +2,7 @@ package com.zhb.wms2.module.product.model.vo;
 
 import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
+import com.zhb.wms2.module.base.model.entity.Salesman;
 import com.zhb.wms2.module.product.model.entity.Product;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -67,6 +68,12 @@ public class StockIoDetailVO {
      */
     @Schema(description = "客户信息")
     private Customer customer;
+
+    /**
+     * 业务员信息。
+     */
+    @Schema(description = "业务员信息")
+    private Salesman salesman;
 
     /**
      * 商品信息。

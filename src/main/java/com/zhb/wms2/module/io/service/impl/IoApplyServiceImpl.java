@@ -14,6 +14,7 @@ import com.zhb.wms2.module.base.model.dto.BaseDictMapDTO;
 import com.zhb.wms2.module.base.model.entity.Customer;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
 import com.zhb.wms2.module.base.model.entity.IoType;
+import com.zhb.wms2.module.base.model.entity.ProductLocation;
 import com.zhb.wms2.module.base.model.entity.Salesman;
 import com.zhb.wms2.module.base.model.entity.Warehouse;
 import com.zhb.wms2.module.base.service.BaseDictMapService;
@@ -277,7 +278,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 validateSalesman(dto.getSalesmanId());
             }
         }
-        validateProducts(dto.getDetailList());
+        validateDetailRefs(dto.getDetailList());
     }
 
     /**
@@ -352,13 +353,20 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
     }
 
     /**
-     * 校验申请明细中的商品都存在。
+     * 校验申请明细中的商品和货位引用都存在。
      */
-    private void validateProducts(List<IoApplyCreateDetailDTO> detailList) {
+    private void validateDetailRefs(List<IoApplyCreateDetailDTO> detailList) {
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Map<Long, ProductLocation> productLocationMap = dictMap.getProductLocationMap() == null
+                ? Map.of()
+                : dictMap.getProductLocationMap();
         // 先对商品 ID 去重，再批量校验是否全部存在。
         Set<Long> productIds = new LinkedHashSet<>();
         for (IoApplyCreateDetailDTO detail : detailList) {
             productIds.add(detail.getProductId());
+            if (!productLocationMap.containsKey(detail.getLocationId())) {
+                throw new BaseException("商品货位不存在");
+            }
         }
         List<Product> productList = productMapper.selectBatchIds(productIds);
         if (productList.size() != productIds.size()) {
@@ -374,6 +382,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
                 .setApplyId(applyId)
                 .setProductId(detailDTO.getProductId())
                 .setQty(detailDTO.getQty())
+                .setLocationId(detailDTO.getLocationId())
                 .setRemark(detailDTO.getRemark());
     }
 
@@ -494,7 +503,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
             return Collections.emptyMap();
         }
 
-        // 批量拉商品详情映射，避免逐条明细回填商品展示信息。
+        // 批量拉商品详情和货位编码映射，避免逐条明细回填展示信息。
         Set<Long> productIds = detailList.stream()
                 .map(IoApplyDetail::getProductId)
                 .filter(Objects::nonNull)
@@ -502,28 +511,46 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         Map<Long, ProductPageVO> productMap = productIds.isEmpty()
                 ? Collections.emptyMap()
                 : productService.getDetailMapByIds(productIds);
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Map<Long, ProductLocation> locationMap = dictMap.getProductLocationMap() == null
+                ? Map.of()
+                : new LinkedHashMap<>(dictMap.getProductLocationMap());
 
         return detailList.stream()
-                .map(detail -> buildDetailVO(detail, productMap.get(detail.getProductId())))
+                .map(detail -> buildDetailVO(detail, productMap.get(detail.getProductId()),
+                        buildLocationCode(detail.getLocationId(), locationMap)))
                 .collect(Collectors.groupingBy(IoApplyDetailVO::getApplyId, LinkedHashMap::new, Collectors.toList()));
     }
 
     /**
      * 组装单条申请明细展示对象。
      */
-    private IoApplyDetailVO buildDetailVO(IoApplyDetail detail, ProductPageVO product) {
+    private IoApplyDetailVO buildDetailVO(IoApplyDetail detail, ProductPageVO product, String locationCode) {
         IoApplyDetailVO vo = new IoApplyDetailVO();
         vo.setId(detail.getId())
                 .setApplyId(detail.getApplyId())
                 .setProductId(detail.getProductId())
                 .setQty(detail.getQty())
+                .setLocationId(detail.getLocationId())
                 .setRemark(detail.getRemark());
         vo.setCreateTime(detail.getCreateTime())
                 .setUpdateTime(detail.getUpdateTime())
                 .setCreateBy(detail.getCreateBy())
                 .setUpdateBy(detail.getUpdateBy());
-        vo.setProduct(product);
+        vo.setProduct(product)
+                .setLocationCode(locationCode);
         return vo;
+    }
+
+    /**
+     * 将货位 ID 转成可展示的货位编码。
+     */
+    private String buildLocationCode(Long locationId, Map<Long, ProductLocation> locationMap) {
+        if (locationId == null) {
+            return null;
+        }
+        ProductLocation location = locationMap.get(locationId);
+        return location == null ? null : location.getCode();
     }
 
     /**

@@ -57,6 +57,13 @@ public class IoApplyDetail extends BaseModel implements Serializable {
     private Long qty;
 
     /**
+     * 货位 ID。
+     */
+    @TableField(value = "location_id")
+    @Schema(description = "货位ID")
+    private Long locationId;
+
+    /**
      * 备注。
      */
     @TableField(value = "remark")

@@ -24,4 +24,10 @@ public class IoApplyDetailVO extends IoApplyDetail {
      */
     @Schema(description = "商品信息")
     private ProductPageVO product;
+
+    /**
+     * 货位编码。
+     */
+    @Schema(description = "货位编码")
+    private String locationCode;
 }

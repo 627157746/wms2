@@ -32,6 +32,14 @@ public class IoApplyCreateDetailDTO {
     private Long qty;
 
     /**
+     * 货位 ID。
+     */
+    @Schema(description = "货位ID")
+    @NotNull(message = "货位不能为空")
+    @Min(value = 1, message = "货位不能为空")
+    private Long locationId;
+
+    /**
      * 备注。
      */
     @Schema(description = "备注")

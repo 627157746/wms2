@@ -194,6 +194,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 ? Map.of() : dictMap.getDeliverymanMap();
         Map<Long, Customer> customerMap = dictMap.getCustomerMap() == null
                 ? Map.of() : dictMap.getCustomerMap();
+        Map<Long, Salesman> salesmanMap = dictMap.getSalesmanMap() == null
+                ? Map.of() : dictMap.getSalesmanMap();
         Map<Long, Long> stockQtyMap = buildCurrentStockQtyMap(detailList);
         return detailPage.convert(detail -> {
             IoOrder ioOrder = orderMap.get(detail.getOrderId());
@@ -205,6 +207,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             return buildStockIoDetailVO(ioOrder, detail, product,
                     deliverymanMap.get(ioOrder.getDeliverymanId()),
                     customerMap.get(ioOrder.getCustomerId()),
+                    salesmanMap.get(ioOrder.getSalesmanId()),
                     stockQtyMap.getOrDefault(detail.getId(), 0L));
         });
     }
@@ -402,6 +405,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         if (!removeById(id)) {
             throw new BaseException("出入库单不存在");
         }
+        rollbackApplyIoStatus(ioOrder.getApplyId());
     }
 
     /**
@@ -459,6 +463,23 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         if (ioOrderCount > 0) {
             throw new BaseException(buildBizLabel(ioApply.getOrderType()) + "申请已生成"
                     + buildBizLabel(ioApply.getOrderType()) + "单");
+        }
+    }
+
+    /**
+     * 删除来源单据后，将申请执行状态回退为未执行。
+     */
+    private void rollbackApplyIoStatus(Long applyId) {
+        if (applyId == null) {
+            return;
+        }
+        IoApply ioApply = ioApplyMapper.selectById(applyId);
+        if (ioApply == null) {
+            throw new BaseException("来源出入库申请不存在");
+        }
+        ioApply.setIoStatus(IoStatusEnum.PENDING.getCode());
+        if (ioApplyMapper.updateById(ioApply) <= 0) {
+            throw new BaseException("来源出入库申请不存在");
         }
     }
 
@@ -602,7 +623,19 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      */
     private void validateApplyGenerateDetails(Integer orderType, List<IoApplyDetail> applyDetailList,
                                               List<IoOrderDetailDTO> detailDTOList) {
-        // 生成单据时按商品汇总数量比对，允许同一商品拆到多个货位。
+        boolean hasLegacyDetail = applyDetailList.stream().anyMatch(detail -> detail.getLocationId() == null);
+        // 新申请明细已带货位时，生成单据必须按商品+货位一致；历史数据继续兼容旧口径。
+        if (!hasLegacyDetail) {
+            Map<Long, Map<Long, Long>> applyQtyMap = buildStockQtyMapFromApplyDetail(applyDetailList);
+            Map<Long, Map<Long, Long>> orderQtyMap = buildStockQtyMapFromDetailDTO(detailDTOList);
+            if (!applyQtyMap.equals(orderQtyMap)) {
+                throw new BaseException(buildBizLabel(orderType) + "单明细数量与"
+                        + buildBizLabel(orderType) + "申请不一致");
+            }
+            return;
+        }
+
+        // 生成单据时按商品汇总数量比对，允许历史申请继续拆到多个货位。
         Map<Long, Long> applyQtyMap = applyDetailList.stream()
                 .collect(Collectors.groupingBy(IoApplyDetail::getProductId, LinkedHashMap::new,
                         Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty())));
@@ -664,6 +697,19 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         return detailList.stream()
                 .collect(Collectors.groupingBy(IoOrderDetail::getProductId, LinkedHashMap::new,
                         Collectors.groupingBy(IoOrderDetail::getLocationId, LinkedHashMap::new,
+                                Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty()))));
+    }
+
+    /**
+     * 将申请明细列表转换为商品-货位-数量的映射。
+     */
+    private Map<Long, Map<Long, Long>> buildStockQtyMapFromApplyDetail(List<IoApplyDetail> detailList) {
+        if (detailList == null || detailList.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return detailList.stream()
+                .collect(Collectors.groupingBy(IoApplyDetail::getProductId, LinkedHashMap::new,
+                        Collectors.groupingBy(IoApplyDetail::getLocationId, LinkedHashMap::new,
                                 Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty()))));
     }
 
@@ -821,7 +867,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      */
     private StockIoDetailVO buildStockIoDetailVO(IoOrder ioOrder, IoOrderDetail detail, Product product,
                                                      Deliveryman deliveryman,
-                                                     Customer customer, Long currentStockQty) {
+                                                     Customer customer, Salesman salesman,
+                                                     Long currentStockQty) {
         return new StockIoDetailVO()
                 .setOrderNo(ioOrder.getOrderNo())
                 .setOrderId(ioOrder.getId())
@@ -831,6 +878,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .setQty(detail.getQty())
                 .setDeliveryman(deliveryman)
                 .setCustomer(customer)
+                .setSalesman(salesman)
                 .setProduct(product)
                 .setCurrentStockQty(currentStockQty == null ? 0L : currentStockQty);
     }

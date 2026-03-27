@@ -34,7 +34,7 @@ public class LocationTransferController {
 
     @PostMapping
     @Operation(summary = "发起转货位")
-    @MethodLock(name = "product:stock", key = "#p0.productId")
+    @MethodLock(name = "stock", key = "#p0.productId")
     public R<Long> create(
             @Parameter(description = "转货位参数", required = true)
             @RequestBody @Validated LocationTransferCreateDTO dto) {

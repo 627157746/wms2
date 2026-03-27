@@ -62,7 +62,7 @@ public class IoOrderController {
 
     @PutMapping
     @Operation(summary = "修改出入库单")
-    @MethodLock(name = "io:order", key = "#p0.id")
+    @MethodLock(name = "stock", key = "#p0.id")
     public R<Void> update(
             @Parameter(description = "出入库单", required = true)
             @RequestBody @Validated({Save.class, Update.class}) IoOrderUpdateDTO dto) {
@@ -72,7 +72,7 @@ public class IoOrderController {
 
     @PutMapping("/detail/location")
     @Operation(summary = "修改出入库单明细货位")
-    @MethodLock(name = "io:order-detail", key = "#p0.detailId")
+    @MethodLock(name = "stock", key = "#p0.detailId")
     public R<Void> updateDetailLocation(
             @Parameter(description = "明细货位", required = true)
             @RequestBody @Validated IoOrderDetailLocationUpdateDTO dto) {
@@ -82,7 +82,7 @@ public class IoOrderController {
 
     @PutMapping("/{id}/pick")
     @Operation(summary = "出库单拣货")
-    @MethodLock(name = "io:order", key = "#p0")
+    @MethodLock(name = "stock", key = "#p0")
     public R<Void> pick(
             @Parameter(description = "出入库单ID", required = true)
             @PathVariable @NotNull @Min(1) Long id) {
@@ -92,7 +92,7 @@ public class IoOrderController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除出入库单")
-    @MethodLock(name = "io:order", key = "#p0")
+    @MethodLock(name = "stock", key = "#p0")
     public R<Void> delete(
             @Parameter(description = "出入库单ID", required = true)
             @PathVariable @NotNull @Min(1) Long id) {

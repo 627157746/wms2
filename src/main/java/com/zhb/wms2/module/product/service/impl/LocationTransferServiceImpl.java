@@ -41,16 +41,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class LocationTransferServiceImpl extends ServiceImpl<LocationTransferMapper, LocationTransfer>
         implements LocationTransferService {
 
-    /**
-     * 虚拟“无货位”记录使用的货位 ID。
-     */
-    private static final Long NO_LOCATION_ID = 0L;
-
-    /**
-     * 虚拟“无货位”记录使用的货位编码。
-     */
-    private static final String NO_LOCATION_CODE = "无货位";
-
     private final ProductMapper productMapper;
     private final BaseDictMapService baseDictMapService;
     private final ProductStockDetailService productStockDetailService;
@@ -153,12 +143,9 @@ public class LocationTransferServiceImpl extends ServiceImpl<LocationTransferMap
     }
 
     /**
-     * 校验货位是否存在，虚拟“无货位”除外。
+     * 校验货位是否存在。
      */
     private void validateLocationExists(Long locationId, String message, Map<Long, ProductLocation> locationMap) {
-        if (Objects.equals(locationId, NO_LOCATION_ID)) {
-            return;
-        }
         if (!locationMap.containsKey(locationId)) {
             throw new BaseException(message);
         }
@@ -195,9 +182,6 @@ public class LocationTransferServiceImpl extends ServiceImpl<LocationTransferMap
      * 将货位 ID 转成可展示的货位编码。
      */
     private String buildLocationCode(Long locationId, Map<Long, ProductLocation> locationMap) {
-        if (Objects.equals(locationId, NO_LOCATION_ID)) {
-            return NO_LOCATION_CODE;
-        }
         ProductLocation location = locationMap.get(locationId);
         return location == null ? null : location.getCode();
     }

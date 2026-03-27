@@ -11,13 +11,11 @@ import com.zhb.wms2.module.product.mapper.ProductStockDetailMapper;
 import com.zhb.wms2.module.product.model.entity.ProductStockDetail;
 import com.zhb.wms2.module.product.model.vo.ProductStockDetailVO;
 import com.zhb.wms2.module.product.service.ProductStockDetailService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 /**
  * ProductStockDetailServiceImpl 服务实现
@@ -30,16 +28,6 @@ import java.util.Objects;
 public class ProductStockDetailServiceImpl extends ServiceImpl<ProductStockDetailMapper, ProductStockDetail>
         implements ProductStockDetailService {
 
-    /**
-     * 虚拟“无货位”记录使用的货位 ID。
-     */
-    private static final Long NO_LOCATION_ID = 0L;
-
-    /**
-     * 虚拟“无货位”记录使用的货位编码。
-     */
-    private static final String NO_LOCATION_CODE = "无货位";
-
     private final ProductMapper productMapper;
     private final BaseDictMapService baseDictMapService;
 
@@ -49,6 +37,7 @@ public class ProductStockDetailServiceImpl extends ServiceImpl<ProductStockDetai
     @Override
     public void saveChecked(ProductStockDetail detail) {
         // 库存明细由库存业务统一驱动创建，这里只负责失败兜底。
+        validateLocationId(detail == null ? null : detail.getLocationId());
         if (!super.save(detail)) {
             throw new BaseException("库存明细新增失败");
         }
@@ -60,6 +49,7 @@ public class ProductStockDetailServiceImpl extends ServiceImpl<ProductStockDetai
     @Override
     public void updateByIdChecked(ProductStockDetail detail) {
         // 库存调整统一落在服务层，避免外部直接更新明细表。
+        validateLocationId(detail == null ? null : detail.getLocationId());
         if (!super.updateById(detail)) {
             throw new BaseException("库存明细修改失败");
         }
@@ -118,12 +108,18 @@ public class ProductStockDetailServiceImpl extends ServiceImpl<ProductStockDetai
      * 将货位 ID 转成可展示的货位编码。
      */
     private String buildLocationCode(Long locationId, Map<Long, ProductLocation> locationMap) {
-        if (Objects.equals(locationId, NO_LOCATION_ID)) {
-            return NO_LOCATION_CODE;
-        }
         // 兼容历史脏数据，找不到货位时保留空值而不是直接报错。
         ProductLocation location = locationMap.get(locationId);
         return location == null ? null : location.getCode();
+    }
+
+    /**
+     * 校验库存明细中的货位是否合法。
+     */
+    private void validateLocationId(Long locationId) {
+        if (locationId == null || locationId < 1) {
+            throw new BaseException("库存明细货位不能为空");
+        }
     }
 
 }

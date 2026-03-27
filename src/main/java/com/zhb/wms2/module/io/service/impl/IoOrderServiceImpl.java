@@ -52,16 +52,6 @@ import java.util.stream.Collectors;
 public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> implements IoOrderService {
 
     /**
-     * 虚拟“无货位”记录使用的货位 ID。
-     */
-    private static final Long NO_LOCATION_ID = 0L;
-
-    /**
-     * 虚拟“无货位”记录使用的货位编码。
-     */
-    private static final String NO_LOCATION_CODE = "无货位";
-
-    /**
      * 入库单号前缀。
      */
     private static final String INBOUND_ORDER_PREFIX = "RK";
@@ -623,25 +613,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      */
     private void validateApplyGenerateDetails(Integer orderType, List<IoApplyDetail> applyDetailList,
                                               List<IoOrderDetailDTO> detailDTOList) {
-        boolean hasLegacyDetail = applyDetailList.stream().anyMatch(detail -> detail.getLocationId() == null);
-        // 新申请明细已带货位时，生成单据必须按商品+货位一致；历史数据继续兼容旧口径。
-        if (!hasLegacyDetail) {
-            Map<Long, Map<Long, Long>> applyQtyMap = buildStockQtyMapFromApplyDetail(applyDetailList);
-            Map<Long, Map<Long, Long>> orderQtyMap = buildStockQtyMapFromDetailDTO(detailDTOList);
-            if (!applyQtyMap.equals(orderQtyMap)) {
-                throw new BaseException(buildBizLabel(orderType) + "单明细数量与"
-                        + buildBizLabel(orderType) + "申请不一致");
-            }
-            return;
-        }
-
-        // 生成单据时按商品汇总数量比对，允许历史申请继续拆到多个货位。
-        Map<Long, Long> applyQtyMap = applyDetailList.stream()
-                .collect(Collectors.groupingBy(IoApplyDetail::getProductId, LinkedHashMap::new,
-                        Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty())));
-        Map<Long, Long> orderQtyMap = detailDTOList.stream()
-                .collect(Collectors.groupingBy(IoOrderDetailDTO::getProductId, LinkedHashMap::new,
-                        Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty())));
+        Map<Long, Map<Long, Long>> applyQtyMap = buildStockQtyMapFromApplyDetail(applyDetailList);
+        Map<Long, Map<Long, Long>> orderQtyMap = buildStockQtyMapFromDetailDTO(detailDTOList);
         if (!applyQtyMap.equals(orderQtyMap)) {
             throw new BaseException(buildBizLabel(orderType) + "单明细数量与"
                     + buildBizLabel(orderType) + "申请不一致");
@@ -751,10 +724,13 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      * 将历史明细实体转换为库存回滚使用的 DTO。
      */
     private IoOrderDetailDTO toDetailDTO(IoOrderDetail detail) {
+        if (detail.getLocationId() == null || detail.getLocationId() < 1) {
+            throw new BaseException("出入库单明细货位不正确，请先清理历史无货位数据");
+        }
         return new IoOrderDetailDTO()
                 .setProductId(detail.getProductId())
                 .setQty(detail.getQty())
-                .setLocationId(detail.getLocationId() == null ? NO_LOCATION_ID : detail.getLocationId())
+                .setLocationId(detail.getLocationId())
                 .setRemark(detail.getRemark());
     }
 
@@ -982,9 +958,6 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      * 将货位 ID 转成可展示的货位编码。
      */
     private String buildLocationCode(Long locationId, Map<Long, ProductLocation> locationMap) {
-        if (Objects.equals(locationId, NO_LOCATION_ID)) {
-            return NO_LOCATION_CODE;
-        }
         ProductLocation location = locationMap.get(locationId);
         return location == null ? null : location.getCode();
     }

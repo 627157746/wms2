@@ -23,11 +23,6 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ProductStockSummaryService {
 
-    /**
-     * 虚拟“无货位”记录使用的货位 ID。
-     */
-    private static final Long NO_LOCATION_ID = 0L;
-
     private final ProductMapper productMapper;
 
     /**
@@ -47,7 +42,6 @@ public class ProductStockSummaryService {
                     .filter(Objects::nonNull)
                     .reduce(0L, Long::sum);
             locationIdsStr = detailMap.keySet().stream()
-                    .filter(locationId -> !Objects.equals(locationId, NO_LOCATION_ID))
                     .sorted(Comparator.naturalOrder())
                     .map(String::valueOf)
                     .collect(Collectors.joining(","));

@@ -24,19 +24,19 @@ public class LocationTransferCreateDTO {
     private Long productId;
 
     /**
-     * 原货位 ID，0 表示无货位。
+     * 原货位 ID。
      */
-    @Schema(description = "原货位ID，0表示无货位")
+    @Schema(description = "原货位ID")
     @NotNull(message = "原货位不能为空")
-    @Min(value = 0, message = "原货位不正确")
+    @Min(value = 1, message = "原货位不能为空")
     private Long fromLocationId;
 
     /**
-     * 转移货位 ID，0 表示无货位。
+     * 转移货位 ID。
      */
-    @Schema(description = "转移货位ID，0表示无货位")
+    @Schema(description = "转移货位ID")
     @NotNull(message = "转移货位不能为空")
-    @Min(value = 0, message = "转移货位不正确")
+    @Min(value = 1, message = "转移货位不能为空")
     private Long toLocationId;
 
     /**

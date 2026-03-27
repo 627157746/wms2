@@ -41,16 +41,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> implements ProductService {
 
-    /**
-     * 虚拟“无货位”记录使用的货位 ID。
-     */
-    private static final Long NO_LOCATION_ID = 0L;
-
-    /**
-     * 虚拟“无货位”记录使用的货位编码。
-     */
-    private static final String NO_LOCATION_CODE = "无货位";
-
     private final BaseDictMapService baseDictMapService;
     private final ProductStockDetailService productStockDetailService;
     private final IoApplyDetailService ioApplyDetailService;
@@ -442,20 +432,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * 将货位 ID 转成可展示的货位编码。
      */
     private String buildLocationCode(Long locationId, Map<Long, ProductLocation> locationMap) {
-        if (Objects.equals(locationId, NO_LOCATION_ID)) {
-            return NO_LOCATION_CODE;
-        }
         ProductLocation location = locationMap.get(locationId);
         return location == null ? null : location.getCode();
     }
 
     /**
-     * 读取货位排序值，虚拟“无货位”固定排在最后。
+     * 读取货位排序值。
      */
     private Integer buildLocationSortOrder(Long locationId, Map<Long, ProductLocation> locationMap) {
-        if (Objects.equals(locationId, NO_LOCATION_ID)) {
-            return Integer.MAX_VALUE;
-        }
         ProductLocation location = locationMap.get(locationId);
         return location == null ? null : location.getSortOrder();
     }

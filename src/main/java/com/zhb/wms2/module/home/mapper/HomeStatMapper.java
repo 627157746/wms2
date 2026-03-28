@@ -19,5 +19,7 @@ public interface HomeStatMapper {
     HomeStatVO selectHomeStat(@Param("today") LocalDate today,
                               @Param("inboundType") Integer inboundType,
                               @Param("outboundType") Integer outboundType,
-                              @Param("unapprovedStatus") Integer unapprovedStatus);
+                              @Param("unapprovedStatus") Integer unapprovedStatus,
+                              @Param("approvedStatus") Integer approvedStatus,
+                              @Param("pendingIoStatus") Integer pendingIoStatus);
 }

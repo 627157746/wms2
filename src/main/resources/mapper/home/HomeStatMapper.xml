@@ -37,6 +37,22 @@
                 WHERE delete_flag = 0
                   AND order_type = #{outboundType}
                   AND approve_status = #{unapprovedStatus}
-            ) AS outboundApplyUnapprovedCount
+            ) AS outboundApplyUnapprovedCount,
+            (
+                SELECT COUNT(1)
+                FROM io_apply
+                WHERE delete_flag = 0
+                  AND order_type = #{inboundType}
+                  AND approve_status = #{approvedStatus}
+                  AND io_status = #{pendingIoStatus}
+            ) AS inboundApplyApprovedPendingCount,
+            (
+                SELECT COUNT(1)
+                FROM io_apply
+                WHERE delete_flag = 0
+                  AND order_type = #{outboundType}
+                  AND approve_status = #{approvedStatus}
+                  AND io_status = #{pendingIoStatus}
+            ) AS outboundApplyApprovedPendingCount
     </select>
 </mapper>

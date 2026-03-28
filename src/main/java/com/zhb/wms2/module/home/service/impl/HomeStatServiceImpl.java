@@ -2,6 +2,7 @@ package com.zhb.wms2.module.home.service.impl;
 
 import com.zhb.wms2.common.enums.ApproveStatusEnum;
 import com.zhb.wms2.common.enums.IoBizTypeEnum;
+import com.zhb.wms2.common.enums.IoStatusEnum;
 import com.zhb.wms2.module.home.mapper.HomeStatMapper;
 import com.zhb.wms2.module.home.model.vo.HomeStatVO;
 import com.zhb.wms2.module.home.service.HomeStatService;
@@ -32,7 +33,9 @@ public class HomeStatServiceImpl implements HomeStatService {
                 LocalDate.now(),
                 IoBizTypeEnum.INBOUND.getCode(),
                 IoBizTypeEnum.OUTBOUND.getCode(),
-                ApproveStatusEnum.UNAPPROVED.getCode()
+                ApproveStatusEnum.UNAPPROVED.getCode(),
+                ApproveStatusEnum.APPROVED.getCode(),
+                IoStatusEnum.PENDING.getCode()
         );
     }
 }

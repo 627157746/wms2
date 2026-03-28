@@ -42,4 +42,16 @@ public class HomeStatVO {
      */
     @Schema(description = "出库申请未审批数")
     private Long outboundApplyUnapprovedCount;
+
+    /**
+     * 入库申请已审批未入库数。
+     */
+    @Schema(description = "入库申请已审批未入库数")
+    private Long inboundApplyApprovedPendingCount;
+
+    /**
+     * 出库申请已审批未出库数。
+     */
+    @Schema(description = "出库申请已审批未出库数")
+    private Long outboundApplyApprovedPendingCount;
 }

@@ -3,10 +3,11 @@ package com.zhb.wms2.module.product.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zhb.wms2.module.product.model.entity.Product;
-import com.zhb.wms2.module.product.model.query.StockDistributionQuery;
 import com.zhb.wms2.module.product.model.query.ProductQuery;
+import com.zhb.wms2.module.product.model.query.StockDistributionQuery;
 import com.zhb.wms2.module.product.model.vo.StockDistributionGroupVO;
 import com.zhb.wms2.module.product.model.vo.ProductPageVO;
+import com.zhb.wms2.module.product.model.vo.ProductStockStatVO;
 
 import java.util.Collection;
 import java.util.List;
@@ -34,6 +35,11 @@ public interface ProductService extends IService<Product> {
      * 查询商品详情。
      */
     ProductPageVO getDetailById(Long id);
+
+    /**
+     * 查询商品库存汇总。
+     */
+    ProductStockStatVO getStockStat(ProductQuery query);
 
     /**
      * 批量查询商品详情映射。

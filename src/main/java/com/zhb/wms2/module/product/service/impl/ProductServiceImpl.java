@@ -21,6 +21,7 @@ import com.zhb.wms2.module.product.model.entity.ProductStockDetail;
 import com.zhb.wms2.module.product.model.query.ProductQuery;
 import com.zhb.wms2.module.product.model.query.StockDistributionQuery;
 import com.zhb.wms2.module.product.model.vo.ProductPageVO;
+import com.zhb.wms2.module.product.model.vo.ProductStockStatVO;
 import com.zhb.wms2.module.product.model.vo.StockDistributionGroupVO;
 import com.zhb.wms2.module.product.model.vo.StockDistributionItemVO;
 import com.zhb.wms2.module.product.service.ProductService;
@@ -68,7 +69,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         Map<Long, ProductCategory> categoryMap = dictMap.getProductCategoryMap() == null
                 ? Collections.emptyMap()
                 : dictMap.getProductCategoryMap();
-        IPage<Product> productPage = page(new Page<>(query.getCurrent(), query.getSize()), buildWrapper(query, categoryMap));
+        IPage<Product> productPage = page(new Page<>(query.getCurrent(), query.getSize()),
+                buildPageWrapper(query, categoryMap));
         List<Product> productList = productPage.getRecords();
         if (productList.isEmpty()) {
             return new Page<>(query.getCurrent(), query.getSize());
@@ -105,6 +107,24 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 ? Collections.emptyMap()
                 : dictMap.getProductUnitMap();
         return buildProductPageVO(product, categoryMap, locationMap, unitMap);
+    }
+
+    /**
+     * 查询商品库存汇总，并复用商品列表筛选条件。
+     */
+    @Override
+    public ProductStockStatVO getStockStat(ProductQuery query) {
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Map<Long, ProductCategory> categoryMap = dictMap.getProductCategoryMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductCategoryMap();
+        Long totalStockQty = list(buildFilterWrapper(query, categoryMap)
+                .select(Product::getTotalStockQty)).stream()
+                .map(Product::getTotalStockQty)
+                .filter(Objects::nonNull)
+                .mapToLong(Long::longValue)
+                .sum();
+        return new ProductStockStatVO().setTotalStockQty(totalStockQty);
     }
 
     /**
@@ -233,7 +253,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     /**
      * 构建商品分页查询条件。
      */
-    private LambdaQueryWrapper<Product> buildWrapper(ProductQuery query, Map<Long, ProductCategory> categoryMap) {
+    private LambdaQueryWrapper<Product> buildPageWrapper(ProductQuery query, Map<Long, ProductCategory> categoryMap) {
+        return buildFilterWrapper(query, categoryMap)
+                .orderByDesc(Product::getId);
+    }
+
+    /**
+     * 构建商品查询过滤条件。
+     */
+    private LambdaQueryWrapper<Product> buildFilterWrapper(ProductQuery query, Map<Long, ProductCategory> categoryMap) {
         // 分类查询需要把子分类一并展开，保证树节点筛选符合业务预期。
         List<Long> categoryIdList = buildCategoryIdList(query.getCategoryId(), categoryMap);
         return new LambdaQueryWrapper<Product>()
@@ -244,8 +272,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 .in(!categoryIdList.isEmpty(), Product::getCategoryId, categoryIdList)
                 .eq(query.getUnitId() != null, Product::getUnitId, query.getUnitId())
                 .gt(Boolean.FALSE.equals(query.getIncludeZeroStock()), Product::getTotalStockQty, 0)
-                .apply(Boolean.TRUE.equals(query.getOnlyShortageStock()), "min_stock > COALESCE(total_stock_qty, 0)")
-                .orderByDesc(Product::getId);
+                .apply(Boolean.TRUE.equals(query.getOnlyShortageStock()), "min_stock > COALESCE(total_stock_qty, 0)");
     }
 
     /**

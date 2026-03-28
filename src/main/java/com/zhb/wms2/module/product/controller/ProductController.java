@@ -8,6 +8,7 @@ import com.zhb.wms2.module.product.model.entity.Product;
 import com.zhb.wms2.module.product.model.query.ProductQuery;
 import com.zhb.wms2.module.product.model.query.StockDistributionQuery;
 import com.zhb.wms2.module.product.model.vo.ProductPageVO;
+import com.zhb.wms2.module.product.model.vo.ProductStockStatVO;
 import com.zhb.wms2.module.product.model.vo.ProductStockDetailVO;
 import com.zhb.wms2.module.product.model.vo.StockDistributionGroupVO;
 import com.zhb.wms2.module.product.service.ProductService;
@@ -62,6 +63,14 @@ public class ProductController {
             @Parameter(description = "查询条件")
             @Validated ProductQuery query) {
         return R.ok(productService.pageQuery(query));
+    }
+
+    @GetMapping("/stockStat")
+    @Operation(summary = "查询商品库存汇总")
+    public R<ProductStockStatVO> stockStat(
+            @Parameter(description = "查询条件")
+            @Validated ProductQuery query) {
+        return R.ok(productService.getStockStat(query));
     }
 
     @GetMapping("/{id}")

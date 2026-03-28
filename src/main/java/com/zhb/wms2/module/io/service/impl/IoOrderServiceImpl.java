@@ -345,10 +345,12 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         // 货位调整本质上是对旧货位回滚、对新货位重放一次库存变更。
         Map<Long, ProductStockDetail> detailMap = loadProductStockDetailMap(detail.getProductId());
         long rollbackDelta = IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType()) ? -detail.getQty() : detail.getQty();
-        changeDetailQty(detailMap, detail.getProductId(), detail.getLocationId(), rollbackDelta, ioOrder.getOrderType());
+        changeDetailQty(detailMap, detail.getProductId(), detail.getLocationId(), rollbackDelta,
+                ioOrder.getOrderType(), false);
 
         long applyDelta = IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType()) ? detail.getQty() : -detail.getQty();
-        changeDetailQty(detailMap, detail.getProductId(), dto.getLocationId(), applyDelta, ioOrder.getOrderType());
+        changeDetailQty(detailMap, detail.getProductId(), dto.getLocationId(), applyDelta,
+                ioOrder.getOrderType(), false);
         productStockSummaryService.syncByDetailMap(detail.getProductId(), detailMap);
 
         detail.setLocationId(dto.getLocationId());
@@ -644,7 +646,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             Map<Long, ProductStockDetail> productDetailMap = detailGroupMap.computeIfAbsent(
                     detailDTO.getProductId(), key -> new LinkedHashMap<>());
             long delta = IoBizTypeEnum.INBOUND.matches(orderType) ? detailDTO.getQty() : -detailDTO.getQty();
-            changeDetailQty(productDetailMap, detailDTO.getProductId(), detailDTO.getLocationId(), delta, orderType);
+            changeDetailQty(productDetailMap, detailDTO.getProductId(), detailDTO.getLocationId(), delta, orderType,
+                    false);
         }
         for (Map.Entry<Long, Map<Long, ProductStockDetail>> entry : detailGroupMap.entrySet()) {
             productStockSummaryService.syncByDetailMap(entry.getKey(), entry.getValue());
@@ -711,8 +714,10 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             long rollbackDelta = IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType())
                     ? -detailDTO.getQty()
                     : detailDTO.getQty();
+            boolean keepLastZeroDetail = IoBizTypeEnum.INBOUND.matches(ioOrder.getOrderType())
+                    && "删除".equals(actionName);
             changeDetailQty(productDetailMap, detailDTO.getProductId(), detailDTO.getLocationId(),
-                    rollbackDelta, ioOrder.getOrderType());
+                    rollbackDelta, ioOrder.getOrderType(), keepLastZeroDetail);
         }
         for (Map.Entry<Long, Map<Long, ProductStockDetail>> entry : detailGroupMap.entrySet()) {
             // 每个商品单独重算库存汇总，保证商品表库存与明细一致。
@@ -765,7 +770,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      * 调整指定商品在指定货位上的库存数量。
      */
     private void changeDetailQty(Map<Long, ProductStockDetail> detailMap, Long productId, Long locationId, Long delta,
-                                 Integer orderType) {
+                                 Integer orderType, boolean keepLastZeroDetail) {
         if (delta == 0) {
             return;
         }
@@ -777,7 +782,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
         if (targetQty == 0) {
             // 出库扣到最后一条库存时保留 0 库存记录，便于后续继续沿用历史货位。
-            if (shouldKeepZeroStockDetail(detailMap, detail, orderType)) {
+            if (shouldKeepZeroStockDetail(detailMap, detail, orderType, keepLastZeroDetail)) {
                 detail.setQty(0L);
                 productStockDetailService.updateByIdChecked(detail);
                 return;
@@ -805,8 +810,11 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      * 判断是否需要保留最后一条 0 库存明细。
      */
     private boolean shouldKeepZeroStockDetail(Map<Long, ProductStockDetail> detailMap, ProductStockDetail currentDetail,
-                                              Integer orderType) {
-        if (currentDetail == null || !IoBizTypeEnum.OUTBOUND.matches(orderType)) {
+                                              Integer orderType, boolean keepLastZeroDetail) {
+        if (currentDetail == null) {
+            return false;
+        }
+        if (!IoBizTypeEnum.OUTBOUND.matches(orderType) && !keepLastZeroDetail) {
             return false;
         }
         return detailMap.values().stream()

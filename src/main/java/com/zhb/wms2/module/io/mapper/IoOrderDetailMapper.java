@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zhb.wms2.module.io.model.dto.IoOrderDetailStockQtyDTO;
 import com.zhb.wms2.module.io.model.entity.IoOrderDetail;
 import com.zhb.wms2.module.product.model.query.StockIoDetailQuery;
+import com.zhb.wms2.module.product.model.vo.StockIoDetailStatVO;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Collection;
@@ -24,6 +25,11 @@ public interface IoOrderDetailMapper extends BaseMapper<IoOrderDetail> {
      */
     IPage<IoOrderDetail> selectPageByProductId(Page<IoOrderDetail> page,
                                                @Param("query") StockIoDetailQuery query);
+
+    /**
+     * 按商品统计入出库明细数量。
+     */
+    StockIoDetailStatVO selectStatByQuery(@Param("query") StockIoDetailQuery query);
 
     /**
      * 统计商品在指定明细之前的库存增减数量。

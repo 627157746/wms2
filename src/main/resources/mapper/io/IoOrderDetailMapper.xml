@@ -23,6 +23,33 @@
         order by d.id desc
     </select>
 
+    <select id="selectStatByQuery" resultType="com.zhb.wms2.module.product.model.vo.StockIoDetailStatVO">
+        select coalesce(sum(case
+                                when o.order_type = 1 then d.qty
+                                else 0
+            end), 0) as inboundQty,
+               coalesce(sum(case
+                                when o.order_type = 2 then d.qty
+                                else 0
+                   end), 0) as outboundQty
+        from io_order_detail d
+                 inner join io_order o on o.id = d.order_id
+        where d.delete_flag = 0
+          and o.delete_flag = 0
+        <if test="query.productId != null">
+            and d.product_id = #{query.productId}
+        </if>
+        <if test="query.bizDateStart != null">
+            and o.biz_date <![CDATA[ >= ]]> #{query.bizDateStart}
+        </if>
+        <if test="query.bizDateEnd != null">
+            and o.biz_date <![CDATA[ <= ]]> #{query.bizDateEnd}
+        </if>
+        <if test="query.orderType != null">
+            and o.order_type = #{query.orderType}
+        </if>
+    </select>
+
     <select id="sumDeltaToDetailIdByProductId" resultType="java.lang.Long">
         select coalesce(sum(case
                                 when d.order_type = 1 then d.qty

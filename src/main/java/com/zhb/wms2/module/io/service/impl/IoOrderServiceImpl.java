@@ -28,6 +28,7 @@ import com.zhb.wms2.module.product.mapper.ProductMapper;
 import com.zhb.wms2.module.product.model.entity.Product;
 import com.zhb.wms2.module.product.model.entity.ProductStockDetail;
 import com.zhb.wms2.module.product.model.query.StockIoDetailQuery;
+import com.zhb.wms2.module.product.model.vo.StockIoDetailStatVO;
 import com.zhb.wms2.module.product.model.vo.ProductPageVO;
 import com.zhb.wms2.module.product.model.vo.StockIoDetailVO;
 import com.zhb.wms2.module.product.service.ProductService;
@@ -150,10 +151,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      */
     @Override
     public IPage<StockIoDetailVO> pageDetailByProductId(StockIoDetailQuery query) {
-        Long productId = query.getProductId();
-        if (productId != null && productMapper.selectById(productId) == null) {
-            throw new BaseException("商品不存在");
-        }
+        validateStockIoDetailQuery(query);
 
         // 明细流水分页先查明细，再批量补单头和商品信息。
         IPage<IoOrderDetail> detailPage = ioOrderDetailMapper.selectPageByProductId(
@@ -203,6 +201,20 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     }
 
     /**
+     * 按商品统计出入库明细流水数量。
+     */
+    @Override
+    public StockIoDetailStatVO getDetailStatByProductId(StockIoDetailQuery query) {
+        validateStockIoDetailQuery(query);
+        StockIoDetailStatVO stat = ioOrderDetailMapper.selectStatByQuery(query);
+        if (stat == null) {
+            return new StockIoDetailStatVO().setInboundQty(0L).setOutboundQty(0L);
+        }
+        return stat.setInboundQty(stat.getInboundQty() == null ? 0L : stat.getInboundQty())
+                .setOutboundQty(stat.getOutboundQty() == null ? 0L : stat.getOutboundQty());
+    }
+
+    /**
      * 查询每条出入库明细当前对应的库存数量。
      */
     private Map<Long, Long> buildCurrentStockQtyMap(List<IoOrderDetail> detailList) {
@@ -221,6 +233,16 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .collect(Collectors.toMap(IoOrderDetailStockQtyDTO::getDetailId,
                         item -> item.getCurrentStockQty() == null ? 0L : item.getCurrentStockQty(),
                         (left, right) -> left, LinkedHashMap::new));
+    }
+
+    /**
+     * 校验商品出入库明细查询条件中的商品引用是否合法。
+     */
+    private void validateStockIoDetailQuery(StockIoDetailQuery query) {
+        Long productId = query.getProductId();
+        if (productId != null && productMapper.selectById(productId) == null) {
+            throw new BaseException("商品不存在");
+        }
     }
 
     /**

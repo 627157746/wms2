@@ -12,6 +12,7 @@ import com.zhb.wms2.module.io.model.query.IoOrderQuery;
 import com.zhb.wms2.module.io.model.vo.IoOrderPageVO;
 import com.zhb.wms2.module.io.service.IoOrderService;
 import com.zhb.wms2.module.product.model.query.StockIoDetailQuery;
+import com.zhb.wms2.module.product.model.vo.StockIoDetailStatVO;
 import com.zhb.wms2.module.product.model.vo.StockIoDetailVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -106,5 +107,13 @@ public class IoOrderController {
             @Parameter(description = "查询条件")
             @Validated StockIoDetailQuery query) {
         return R.ok(ioOrderService.pageDetailByProductId(query));
+    }
+
+    @GetMapping("/ioDetail/stat")
+    @Operation(summary = "统计商品出入库明细")
+    public R<StockIoDetailStatVO> ioDetailStat(
+            @Parameter(description = "查询条件")
+            @Validated StockIoDetailQuery query) {
+        return R.ok(ioOrderService.getDetailStatByProductId(query));
     }
 }

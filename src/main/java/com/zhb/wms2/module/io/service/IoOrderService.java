@@ -7,7 +7,6 @@ import com.zhb.wms2.module.product.model.vo.StockIoDetailStatVO;
 import com.zhb.wms2.module.product.model.vo.StockIoDetailVO;
 import com.zhb.wms2.module.io.model.dto.IoOrderCreateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderDetailLocationUpdateDTO;
-import com.zhb.wms2.module.io.model.dto.IoOrderGenerateDTO;
 import com.zhb.wms2.module.io.model.dto.IoOrderUpdateDTO;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
 import com.zhb.wms2.module.io.model.query.IoOrderQuery;
@@ -44,7 +43,7 @@ public interface IoOrderService extends IService<IoOrder> {
     /**
      * 根据申请生成出入库单。
      */
-    Long generateOrderByApply(Long applyId, IoOrderGenerateDTO dto);
+    Long generateOrderByApply(Long applyId);
 
     /**
      * 手工新增出入库单。

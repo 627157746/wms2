@@ -250,7 +250,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long generateOrderByApply(Long applyId, IoOrderGenerateDTO dto) {
+    public Long generateOrderByApply(Long applyId) {
         IoApply ioApply = ioApplyMapper.selectById(applyId);
         if (ioApply == null) {
             throw new BaseException("出入库申请不存在");
@@ -264,14 +264,12 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             throw new BaseException(buildBizLabel(ioApply.getOrderType()) + "申请明细不能为空");
         }
 
-        List<IoOrderDetailDTO> detailDTOList = dto.getDetailList();
+        List<IoOrderDetailDTO> detailDTOList = convertApplyDetailsToOrderDetailDTOList(applyDetailList);
         validateDetailRefs(detailDTOList);
-        // 由申请生成的单据不允许随意改数量，必须与申请汇总数量一致。
-        validateApplyGenerateDetails(ioApply.getOrderType(), applyDetailList, detailDTOList);
 
-        IoOrder ioOrder = createOrder(ioApply.getOrderType(), ioApply.getId(), dto.getBizDate(),
+        IoOrder ioOrder = createOrder(ioApply.getOrderType(), ioApply.getId(), ioApply.getApplyDate(),
                 ioApply.getDeliverymanId(), ioApply.getCustomerId(), ioApply.getWarehouseId(),
-                ioApply.getSalesmanId(), ioApply.getIoTypeId(), dto.getRemark(), detailDTOList);
+                ioApply.getSalesmanId(), ioApply.getIoTypeId(), ioApply.getRemark(), detailDTOList);
         // 生成单据成功后，把申请状态推进为已执行完成。
         ioApply.setIoStatus(IoStatusEnum.DONE.getCode());
         ioApplyMapper.updateById(ioApply);
@@ -633,19 +631,6 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     }
 
     /**
-     * 校验由申请生成的出入库单明细数量与申请一致。
-     */
-    private void validateApplyGenerateDetails(Integer orderType, List<IoApplyDetail> applyDetailList,
-                                              List<IoOrderDetailDTO> detailDTOList) {
-        Map<Long, Map<Long, Long>> applyQtyMap = buildStockQtyMapFromApplyDetail(applyDetailList);
-        Map<Long, Map<Long, Long>> orderQtyMap = buildStockQtyMapFromDetailDTO(detailDTOList);
-        if (!applyQtyMap.equals(orderQtyMap)) {
-            throw new BaseException(buildBizLabel(orderType) + "单明细数量与"
-                    + buildBizLabel(orderType) + "申请不一致");
-        }
-    }
-
-    /**
      * 将出入库明细 DTO 转为实体。
      */
     private IoOrderDetail buildOrderDetail(Long orderId, Integer orderType, IoOrderDetailDTO detailDTO) {
@@ -698,19 +683,6 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     }
 
     /**
-     * 将申请明细列表转换为商品-货位-数量的映射。
-     */
-    private Map<Long, Map<Long, Long>> buildStockQtyMapFromApplyDetail(List<IoApplyDetail> detailList) {
-        if (detailList == null || detailList.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        return detailList.stream()
-                .collect(Collectors.groupingBy(IoApplyDetail::getProductId, LinkedHashMap::new,
-                        Collectors.groupingBy(IoApplyDetail::getLocationId, LinkedHashMap::new,
-                                Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty()))));
-    }
-
-    /**
      * 将新明细 DTO 列表转换为商品-货位-数量的映射。
      */
     private Map<Long, Map<Long, Long>> buildStockQtyMapFromDetailDTO(List<IoOrderDetailDTO> detailDTOList) {
@@ -721,6 +693,19 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .collect(Collectors.groupingBy(IoOrderDetailDTO::getProductId, LinkedHashMap::new,
                         Collectors.groupingBy(IoOrderDetailDTO::getLocationId, LinkedHashMap::new,
                                 Collectors.summingLong(detail -> detail.getQty() == null ? 0L : detail.getQty()))));
+    }
+
+    /**
+     * 将申请明细转换为生成出入库单使用的明细 DTO 列表。
+     */
+    private List<IoOrderDetailDTO> convertApplyDetailsToOrderDetailDTOList(List<IoApplyDetail> applyDetailList) {
+        return applyDetailList.stream()
+                .map(detail -> new IoOrderDetailDTO()
+                        .setProductId(detail.getProductId())
+                        .setQty(detail.getQty())
+                        .setLocationId(detail.getLocationId())
+                        .setRemark(detail.getRemark()))
+                .toList();
     }
 
     /**

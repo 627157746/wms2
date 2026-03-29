@@ -7,7 +7,6 @@ import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
 import com.zhb.wms2.module.io.model.dto.IoApplyCreateDTO;
 import com.zhb.wms2.module.io.model.dto.IoApplyUpdateDTO;
-import com.zhb.wms2.module.io.model.dto.IoOrderGenerateDTO;
 import com.zhb.wms2.module.io.model.query.IoApplyQuery;
 import com.zhb.wms2.module.io.model.vo.IoApplyPageVO;
 import com.zhb.wms2.module.io.service.IoApplyService;
@@ -49,10 +48,8 @@ public class IoApplyController {
     @MethodLock(name = "stock", key = "#p0")
     public R<Long> generateOrder(
             @Parameter(description = "出入库申请ID", required = true)
-            @PathVariable @NotNull @Min(1) Long id,
-            @Parameter(description = "生成参数", required = true)
-            @RequestBody @Validated(Save.class) IoOrderGenerateDTO dto) {
-        return R.ok(ioOrderService.generateOrderByApply(id, dto));
+            @PathVariable @NotNull @Min(1) Long id) {
+        return R.ok(ioOrderService.generateOrderByApply(id));
     }
 
     @GetMapping("/page")

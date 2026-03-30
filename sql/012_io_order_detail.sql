@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS io_order_detail (
   id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
   order_id BIGINT NOT NULL COMMENT '出入库单ID',
   order_type TINYINT NOT NULL COMMENT '单据类型：1-入库 2-出库',
+  biz_date DATE NOT NULL COMMENT '业务日期',
   product_id BIGINT NOT NULL COMMENT '商品ID',
   qty BIGINT NOT NULL COMMENT '数量',
   location_id BIGINT NOT NULL COMMENT '货位ID',
@@ -16,4 +17,5 @@ CREATE TABLE IF NOT EXISTS io_order_detail (
 
 CREATE INDEX idx_io_order_detail_order ON io_order_detail(order_type, order_id);
 CREATE INDEX idx_io_order_detail_product ON io_order_detail(product_id);
+CREATE INDEX idx_io_order_detail_product_biz_date ON io_order_detail(product_id, biz_date);
 CREATE INDEX idx_io_order_detail_location ON io_order_detail(location_id);

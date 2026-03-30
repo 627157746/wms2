@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.zhb.wms2.common.model.BaseModel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serializable;
+import java.time.LocalDate;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -48,6 +49,13 @@ public class IoOrderDetail extends BaseModel implements Serializable {
     @TableField(value = "order_type")
     @Schema(description = "单据类型：1-入库 2-出库")
     private Integer orderType;
+
+    /**
+     * 业务日期。
+     */
+    @TableField(value = "biz_date")
+    @Schema(description = "业务日期")
+    private LocalDate bizDate;
 
     /**
      * 商品 ID。

@@ -336,7 +336,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         // 明细修改统一采用全删全建，保持逻辑简单且与库存回放一致。
         ioOrderDetailService.removeByOrderIdChecked(dto.getId());
         List<IoOrderDetail> newDetailList = newDetailDTOList.stream()
-                .map(detailDTO -> buildOrderDetail(ioOrder.getId(), ioOrder.getOrderType(), detailDTO))
+                .map(detailDTO -> buildOrderDetail(ioOrder.getId(), ioOrder.getOrderType(), ioOrder.getBizDate(),
+                        detailDTO))
                 .toList();
         ioOrderDetailService.saveBatchChecked(newDetailList);
         if (stockChanged) {
@@ -455,7 +456,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
 
         // 单头落库后再生成明细并同步库存，避免明细缺少主单 ID。
         List<IoOrderDetail> detailList = detailDTOList.stream()
-                .map(detailDTO -> buildOrderDetail(ioOrder.getId(), ioOrder.getOrderType(), detailDTO))
+                .map(detailDTO -> buildOrderDetail(ioOrder.getId(), ioOrder.getOrderType(), ioOrder.getBizDate(),
+                        detailDTO))
                 .toList();
         ioOrderDetailService.saveBatchChecked(detailList);
         applyStockChange(ioOrder.getOrderType(), detailDTOList);
@@ -635,10 +637,12 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     /**
      * 将出入库明细 DTO 转为实体。
      */
-    private IoOrderDetail buildOrderDetail(Long orderId, Integer orderType, IoOrderDetailDTO detailDTO) {
+    private IoOrderDetail buildOrderDetail(Long orderId, Integer orderType, LocalDate bizDate,
+                                           IoOrderDetailDTO detailDTO) {
         return new IoOrderDetail()
                 .setOrderId(orderId)
                 .setOrderType(orderType)
+                .setBizDate(bizDate)
                 .setProductId(detailDTO.getProductId())
                 .setQty(detailDTO.getQty())
                 .setLocationId(detailDTO.getLocationId())
@@ -888,7 +892,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .setOrderId(ioOrder.getId())
                 .setOrderType(ioOrder.getOrderType())
                 .setOrderTypeName(buildBizLabel(ioOrder.getOrderType()))
-                .setBizDate(ioOrder.getBizDate())
+                .setBizDate(detail.getBizDate())
                 .setQty(detail.getQty())
                 .setDeliveryman(deliveryman)
                 .setCustomer(customer)
@@ -958,6 +962,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         vo.setId(detail.getId())
                 .setOrderId(detail.getOrderId())
                 .setOrderType(detail.getOrderType())
+                .setBizDate(detail.getBizDate())
                 .setProductId(detail.getProductId())
                 .setQty(detail.getQty())
                 .setLocationId(detail.getLocationId())

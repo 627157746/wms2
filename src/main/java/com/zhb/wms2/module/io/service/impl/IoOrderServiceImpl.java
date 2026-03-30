@@ -38,6 +38,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -267,7 +268,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         List<IoOrderDetailDTO> detailDTOList = convertApplyDetailsToOrderDetailDTOList(applyDetailList);
         validateDetailRefs(detailDTOList);
 
-        IoOrder ioOrder = createOrder(ioApply.getOrderType(), ioApply.getId(), ioApply.getApplyDate(),
+        LocalDate bizDate = LocalDate.now();
+        IoOrder ioOrder = createOrder(ioApply.getOrderType(), ioApply.getId(), bizDate,
                 ioApply.getDeliverymanId(), ioApply.getCustomerId(), ioApply.getWarehouseId(),
                 ioApply.getSalesmanId(), ioApply.getIoTypeId(), ioApply.getRemark(), detailDTOList);
         // 生成单据成功后，把申请状态推进为已执行完成。
@@ -423,7 +425,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     /**
      * 创建出入库单实体并落库，同时同步库存变化。
      */
-    private IoOrder createOrder(Integer orderType, Long applyId, java.time.LocalDate bizDate, Long deliverymanId,
+    private IoOrder createOrder(Integer orderType, Long applyId, LocalDate bizDate, Long deliverymanId,
                                 Long customerId, Long warehouseId, Long salesmanId, Long ioTypeId, String remark,
                                 List<IoOrderDetailDTO> detailDTOList) {
         // 单据实体先组装完整，再统一交给保存和库存调整逻辑处理。

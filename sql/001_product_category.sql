@@ -8,10 +8,9 @@ CREATE TABLE IF NOT EXISTS product_category (
   create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   create_by VARCHAR(64) NULL COMMENT '创建人',
-  update_by VARCHAR(64) NULL COMMENT '更新人',
-  delete_flag BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标记'
+  update_by VARCHAR(64) NULL COMMENT '更新人'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商品分类';
 
-CREATE UNIQUE INDEX uk_product_category_name ON product_category(name, delete_flag);
+CREATE UNIQUE INDEX uk_product_category_name ON product_category(name);
 CREATE INDEX idx_product_category_parent ON product_category(parent_id);
 CREATE INDEX idx_product_category_sort ON product_category(sort_order);

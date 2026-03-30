@@ -15,10 +15,9 @@ CREATE TABLE IF NOT EXISTS io_order (
   create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   create_by VARCHAR(64) NULL COMMENT '创建人',
-  update_by VARCHAR(64) NULL COMMENT '更新人',
-  delete_flag BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标记'
+  update_by VARCHAR(64) NULL COMMENT '更新人'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='出入库单';
 
-CREATE UNIQUE INDEX uk_io_order_no ON io_order(order_no, delete_flag);
+CREATE UNIQUE INDEX uk_io_order_no ON io_order(order_no);
 CREATE INDEX idx_io_order_type_date ON io_order(order_type, biz_date);
 CREATE INDEX idx_io_order_warehouse ON io_order(order_type, warehouse_id);

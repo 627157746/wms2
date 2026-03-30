@@ -2,8 +2,6 @@ package com.zhb.wms2.common.model;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -43,13 +41,4 @@ public class BaseModel {
      */
     @TableField(value = "update_by", fill = FieldFill.INSERT_UPDATE)
     private String updateBy;
-
-    /**
-     * 逻辑删除标记
-     * 0-未删除，时间戳-已删除
-     */
-    @JsonIgnore
-    @TableLogic
-    @TableField("delete_flag")
-    private Long deleteFlag;
 }

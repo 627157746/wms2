@@ -6,8 +6,7 @@ CREATE TABLE IF NOT EXISTS product_unit (
   create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   create_by VARCHAR(64) NULL COMMENT '创建人',
-  update_by VARCHAR(64) NULL COMMENT '更新人',
-  delete_flag BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标记'
+  update_by VARCHAR(64) NULL COMMENT '更新人'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商品单位';
 
-CREATE UNIQUE INDEX uk_product_unit_name ON product_unit(name, delete_flag);
+CREATE UNIQUE INDEX uk_product_unit_name ON product_unit(name);

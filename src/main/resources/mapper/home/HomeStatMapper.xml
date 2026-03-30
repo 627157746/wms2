@@ -7,50 +7,43 @@
             (
                 SELECT COUNT(1)
                 FROM io_order
-                WHERE delete_flag = 0
-                  AND order_type = #{inboundType}
+                WHERE order_type = #{inboundType}
                   AND biz_date = #{today}
             ) AS todayInboundCount,
             (
                 SELECT COUNT(1)
                 FROM io_order
-                WHERE delete_flag = 0
-                  AND order_type = #{outboundType}
+                WHERE order_type = #{outboundType}
                   AND biz_date = #{today}
             ) AS todayOutboundCount,
             (
                 SELECT COUNT(1)
                 FROM product p
-                WHERE p.delete_flag = 0
-                  AND p.min_stock > COALESCE(p.total_stock_qty, 0)
+                WHERE p.min_stock > COALESCE(p.total_stock_qty, 0)
             ) AS stockShortageWarnCount,
             (
                 SELECT COUNT(1)
                 FROM io_apply
-                WHERE delete_flag = 0
-                  AND order_type = #{inboundType}
+                WHERE order_type = #{inboundType}
                   AND approve_status = #{unapprovedStatus}
             ) AS inboundApplyUnapprovedCount,
             (
                 SELECT COUNT(1)
                 FROM io_apply
-                WHERE delete_flag = 0
-                  AND order_type = #{outboundType}
+                WHERE order_type = #{outboundType}
                   AND approve_status = #{unapprovedStatus}
             ) AS outboundApplyUnapprovedCount,
             (
                 SELECT COUNT(1)
                 FROM io_apply
-                WHERE delete_flag = 0
-                  AND order_type = #{inboundType}
+                WHERE order_type = #{inboundType}
                   AND approve_status = #{approvedStatus}
                   AND io_status = #{pendingIoStatus}
             ) AS inboundApplyApprovedPendingCount,
             (
                 SELECT COUNT(1)
                 FROM io_apply
-                WHERE delete_flag = 0
-                  AND order_type = #{outboundType}
+                WHERE order_type = #{outboundType}
                   AND approve_status = #{approvedStatus}
                   AND io_status = #{pendingIoStatus}
             ) AS outboundApplyApprovedPendingCount

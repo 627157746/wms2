@@ -538,9 +538,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      */
     private void normalizeProduct(Product product) {
         // 保存前统一清洗可选字符串字段，避免空串和空白字符污染唯一校验。
+        String code = StrUtil.emptyToNull(StrUtil.trim(product.getCode()));
+        String barcode = StrUtil.emptyToNull(StrUtil.trim(product.getBarcode()));
+        if (code == null && barcode != null) {
+            // 商品编号为空时默认复用条形码，减少前端重复录入。
+            code = barcode;
+        }
         product.setName(StrUtil.trim(product.getName()))
-                .setCode(StrUtil.emptyToNull(StrUtil.trim(product.getCode())))
-                .setBarcode(StrUtil.emptyToNull(StrUtil.trim(product.getBarcode())))
+                .setCode(code)
+                .setBarcode(barcode)
                 .setModel(StrUtil.emptyToNull(StrUtil.trim(product.getModel())))
                 .setRemark(StrUtil.emptyToNull(StrUtil.trim(product.getRemark())));
         if (product.getMinStock() == null) {

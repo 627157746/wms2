@@ -1,6 +1,8 @@
 package com.zhb.wms2.module.io.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.poi.excel.ExcelUtil;
+import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -34,10 +36,14 @@ import com.zhb.wms2.module.product.model.vo.StockIoDetailVO;
 import com.zhb.wms2.module.product.service.ProductService;
 import com.zhb.wms2.module.product.service.ProductStockDetailService;
 import com.zhb.wms2.module.product.service.support.ProductStockSummaryService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Function;
@@ -159,9 +165,78 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 new Page<>(query.getCurrent(), query.getSize()), query);
         List<IoOrderDetail> detailList = detailPage.getRecords();
         if (detailList == null || detailList.isEmpty()) {
-            return detailPage.convert(detail -> new StockIoDetailVO());
+            return new Page<>(query.getCurrent(), query.getSize(), detailPage.getTotal());
         }
+        Page<StockIoDetailVO> resultPage = new Page<>(query.getCurrent(), query.getSize(), detailPage.getTotal());
+        resultPage.setRecords(buildStockIoDetailVOList(detailList));
+        return resultPage;
+    }
 
+    /**
+     * 按商品统计出入库明细流水数量。
+     */
+    @Override
+    public StockIoDetailStatVO getDetailStatByProductId(StockIoDetailQuery query) {
+        validateStockIoDetailQuery(query);
+        StockIoDetailStatVO stat = ioOrderDetailMapper.selectStatByQuery(query);
+        if (stat == null) {
+            return new StockIoDetailStatVO().setInboundQty(0L).setOutboundQty(0L);
+        }
+        return stat.setInboundQty(stat.getInboundQty() == null ? 0L : stat.getInboundQty())
+                .setOutboundQty(stat.getOutboundQty() == null ? 0L : stat.getOutboundQty());
+    }
+
+    /**
+     * 按商品导出出入库明细流水。
+     */
+    @Override
+    public void exportDetailByProductId(StockIoDetailQuery query, HttpServletResponse response) throws IOException {
+        validateStockIoDetailQuery(query);
+        List<IoOrderDetail> detailList = ioOrderDetailMapper.selectListByProductId(query);
+        List<StockIoDetailVO> voList = buildStockIoDetailVOList(detailList);
+
+        String fileName = URLEncoder.encode("商品出入库明细.xlsx", StandardCharsets.UTF_8)
+                .replaceAll("\\+", "%20");
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setHeader("Content-Disposition", "attachment;filename*=UTF-8''" + fileName);
+
+        try (ExcelWriter writer = ExcelUtil.getWriter(true)) {
+            writer.renameSheet("商品出入库明细");
+            writeStockIoDetailSheet(writer, voList);
+            writer.autoSizeColumnAll();
+            writer.flush(response.getOutputStream(), true);
+        }
+    }
+
+    /**
+     * 查询每条出入库明细当前对应的库存数量。
+     */
+    private Map<Long, Long> buildCurrentStockQtyMap(List<IoOrderDetail> detailList) {
+        if (detailList == null || detailList.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Long> detailIds = detailList.stream()
+                .map(IoOrderDetail::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (detailIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        // 由 mapper 一次性计算每条明细对应的当前库存，避免在 Java 侧拼库存流水。
+        return ioOrderDetailMapper.selectCurrentStockQtyByDetailIds(detailIds).stream()
+                .collect(Collectors.toMap(IoOrderDetailStockQtyDTO::getDetailId,
+                        item -> item.getCurrentStockQty() == null ? 0L : item.getCurrentStockQty(),
+                        (left, right) -> left, LinkedHashMap::new));
+    }
+
+    /**
+     * 批量组装商品出入库流水展示对象。
+     */
+    private List<StockIoDetailVO> buildStockIoDetailVOList(List<IoOrderDetail> detailList) {
+        if (detailList == null || detailList.isEmpty()) {
+            return List.of();
+        }
         Set<Long> orderIds = detailList.stream()
                 .map(IoOrderDetail::getOrderId)
                 .filter(Objects::nonNull)
@@ -186,54 +261,43 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         Map<Long, Salesman> salesmanMap = dictMap.getSalesmanMap() == null
                 ? Map.of() : dictMap.getSalesmanMap();
         Map<Long, Long> stockQtyMap = buildCurrentStockQtyMap(detailList);
-        return detailPage.convert(detail -> {
-            IoOrder ioOrder = orderMap.get(detail.getOrderId());
-            if (ioOrder == null) {
-                return new StockIoDetailVO();
-            }
-            // 当前库存按明细 ID 反查，便于页面展示该笔单据执行后的库存结果。
-            Product product = productMap.get(detail.getProductId());
-            return buildStockIoDetailVO(ioOrder, detail, product,
-                    deliverymanMap.get(ioOrder.getDeliverymanId()),
-                    customerMap.get(ioOrder.getCustomerId()),
-                    salesmanMap.get(ioOrder.getSalesmanId()),
-                    stockQtyMap.getOrDefault(detail.getId(), 0L));
-        });
-    }
-
-    /**
-     * 按商品统计出入库明细流水数量。
-     */
-    @Override
-    public StockIoDetailStatVO getDetailStatByProductId(StockIoDetailQuery query) {
-        validateStockIoDetailQuery(query);
-        StockIoDetailStatVO stat = ioOrderDetailMapper.selectStatByQuery(query);
-        if (stat == null) {
-            return new StockIoDetailStatVO().setInboundQty(0L).setOutboundQty(0L);
-        }
-        return stat.setInboundQty(stat.getInboundQty() == null ? 0L : stat.getInboundQty())
-                .setOutboundQty(stat.getOutboundQty() == null ? 0L : stat.getOutboundQty());
-    }
-
-    /**
-     * 查询每条出入库明细当前对应的库存数量。
-     */
-    private Map<Long, Long> buildCurrentStockQtyMap(List<IoOrderDetail> detailList) {
-        if (detailList == null || detailList.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        List<Long> detailIds = detailList.stream()
-                .map(IoOrderDetail::getId)
+        return detailList.stream()
+                .map(detail -> {
+                    IoOrder ioOrder = orderMap.get(detail.getOrderId());
+                    if (ioOrder == null) {
+                        return null;
+                    }
+                    // 当前库存按明细 ID 反查，便于页面展示该笔单据执行后的库存结果。
+                    Product product = productMap.get(detail.getProductId());
+                    return buildStockIoDetailVO(ioOrder, detail, product,
+                            deliverymanMap.get(ioOrder.getDeliverymanId()),
+                            customerMap.get(ioOrder.getCustomerId()),
+                            salesmanMap.get(ioOrder.getSalesmanId()),
+                            stockQtyMap.getOrDefault(detail.getId(), 0L));
+                })
                 .filter(Objects::nonNull)
                 .toList();
-        if (detailIds.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        // 由 mapper 一次性计算每条明细对应的当前库存，避免在 Java 侧拼库存流水。
-        return ioOrderDetailMapper.selectCurrentStockQtyByDetailIds(detailIds).stream()
-                .collect(Collectors.toMap(IoOrderDetailStockQtyDTO::getDetailId,
-                        item -> item.getCurrentStockQty() == null ? 0L : item.getCurrentStockQty(),
-                        (left, right) -> left, LinkedHashMap::new));
+    }
+
+    /**
+     * 写出商品出入库流水 Excel。
+     */
+    private void writeStockIoDetailSheet(ExcelWriter writer, List<StockIoDetailVO> voList) {
+        writer.writeRow(List.of("单号", "单据类型", "业务日期", "数量", "送货员", "客户", "业务员",
+                "商品名称", "商品编号", "商品型号", "该笔出入库后的库存"));
+        voList.forEach(item -> writer.writeRow(Arrays.asList(
+                item.getOrderNo(),
+                item.getOrderTypeName(),
+                item.getBizDate().toString(),
+                item.getQty(),
+                item.getDeliveryman() == null ? null : item.getDeliveryman().getName(),
+                item.getCustomer() == null ? null : item.getCustomer().getName(),
+                item.getSalesman() == null ? null : item.getSalesman().getName(),
+                item.getProduct() == null ? null : item.getProduct().getName(),
+                item.getProduct() == null ? null : item.getProduct().getCode(),
+                item.getProduct() == null ? null : item.getProduct().getModel(),
+                item.getCurrentStockQty()
+        )));
     }
 
     /**

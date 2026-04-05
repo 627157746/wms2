@@ -16,12 +16,14 @@ import com.zhb.wms2.module.product.service.ProductStockDetailService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -95,6 +97,15 @@ public class ProductController {
             @Parameter(description = "查询条件")
             @Validated StockDistributionQuery query) {
         return R.ok(productService.listDistribution(query));
+    }
+
+    @GetMapping("/distribution/export")
+    @Operation(summary = "导出库存货位分布")
+    public void exportDistribution(
+            @Parameter(description = "查询条件")
+            @Validated StockDistributionQuery query,
+            HttpServletResponse response) throws IOException {
+        productService.exportDistribution(query, response);
     }
 
 

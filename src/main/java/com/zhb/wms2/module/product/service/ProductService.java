@@ -8,7 +8,9 @@ import com.zhb.wms2.module.product.model.query.StockDistributionQuery;
 import com.zhb.wms2.module.product.model.vo.StockDistributionGroupVO;
 import com.zhb.wms2.module.product.model.vo.ProductPageVO;
 import com.zhb.wms2.module.product.model.vo.ProductStockStatVO;
+import jakarta.servlet.http.HttpServletResponse;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,11 @@ public interface ProductService extends IService<Product> {
      * 查询商品库存分布。
      */
     List<StockDistributionGroupVO> listDistribution(StockDistributionQuery query);
+
+    /**
+     * 查询商品库存分布导出数据。
+     */
+    void exportDistribution(StockDistributionQuery query, HttpServletResponse response) throws IOException;
 
     /**
      * 删除商品。

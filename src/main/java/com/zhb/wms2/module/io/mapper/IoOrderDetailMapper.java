@@ -27,6 +27,11 @@ public interface IoOrderDetailMapper extends BaseMapper<IoOrderDetail> {
                                                @Param("query") StockIoDetailQuery query);
 
     /**
+     * 按商品查询全部入出库单明细。
+     */
+    List<IoOrderDetail> selectListByProductId(@Param("query") StockIoDetailQuery query);
+
+    /**
      * 按商品统计入出库明细数量。
      */
     StockIoDetailStatVO selectStatByQuery(@Param("query") StockIoDetailQuery query);

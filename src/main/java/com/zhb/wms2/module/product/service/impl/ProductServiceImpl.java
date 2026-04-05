@@ -1,6 +1,8 @@
 package com.zhb.wms2.module.product.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.poi.excel.ExcelUtil;
+import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -26,9 +28,13 @@ import com.zhb.wms2.module.product.model.vo.StockDistributionGroupVO;
 import com.zhb.wms2.module.product.model.vo.StockDistributionItemVO;
 import com.zhb.wms2.module.product.service.ProductService;
 import com.zhb.wms2.module.product.service.ProductStockDetailService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -198,6 +204,26 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             return List.of();
         }
         return buildLocationGroupList(rowList);
+    }
+
+    /**
+     * 导出库存货位分布。
+     */
+    @Override
+    public void exportDistribution(StockDistributionQuery query, HttpServletResponse response) throws IOException {
+        List<StockDistributionGroupVO> groupList = listDistribution(query);
+        String fileName = URLEncoder.encode("库存货位分布.xlsx", StandardCharsets.UTF_8)
+                .replaceAll("\\+", "%20");
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setHeader("Content-Disposition", "attachment;filename*=UTF-8''" + fileName);
+
+        try (ExcelWriter writer = ExcelUtil.getWriter(true)) {
+            writer.renameSheet("库存货位分布");
+            writeDistributionSheet(writer, groupList);
+            writer.autoSizeColumnAll();
+            writer.flush(response.getOutputStream(), true);
+        }
     }
 
     /**
@@ -439,6 +465,31 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             group.setTotalQty(group.getTotalQty() + row.getQty());
         }
         return new ArrayList<>(groupMap.values());
+    }
+
+    /**
+     * 按查询接口的货位分组结构写出导出内容。
+     */
+    private void writeDistributionSheet(ExcelWriter writer, List<StockDistributionGroupVO> groupList) {
+        for (StockDistributionGroupVO group : groupList) {
+            List<StockDistributionItemVO> itemList = group.getItemList();
+            if (itemList == null || itemList.isEmpty()) {
+                continue;
+            }
+            writer.writeRow(List.of(buildLocationTitle(group)));
+            writer.writeRow(List.of("名称", "型号", "数量"));
+            itemList.forEach(item -> writer.writeRow(Arrays.asList(item.getProductName(), item.getModel(), item.getQty())));
+            writer.writeRow(List.of());
+        }
+    }
+
+    /**
+     * 组装货位分组标题。
+     */
+    private String buildLocationTitle(StockDistributionGroupVO group) {
+        String locationCode = StrUtil.blankToDefault(group.getLocationCode(), "-");
+        Long totalQty = group.getTotalQty() == null ? 0L : group.getTotalQty();
+        return "货位：" + locationCode + "，合计：" + totalQty;
     }
 
     /**

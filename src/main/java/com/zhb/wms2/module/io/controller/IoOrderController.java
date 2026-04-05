@@ -17,11 +17,14 @@ import com.zhb.wms2.module.product.model.vo.StockIoDetailVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 /**
  * 出入库单控制器
@@ -107,6 +110,15 @@ public class IoOrderController {
             @Parameter(description = "查询条件")
             @Validated StockIoDetailQuery query) {
         return R.ok(ioOrderService.pageDetailByProductId(query));
+    }
+
+    @GetMapping("/ioDetail/export")
+    @Operation(summary = "导出商品出入库明细")
+    public void ioDetailExport(
+            @Parameter(description = "查询条件")
+            @Validated StockIoDetailQuery query,
+            HttpServletResponse response) throws IOException {
+        ioOrderService.exportDetailByProductId(query, response);
     }
 
     @GetMapping("/ioDetail/stat")

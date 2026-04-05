@@ -11,6 +11,9 @@ import com.zhb.wms2.module.io.model.dto.IoOrderUpdateDTO;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
 import com.zhb.wms2.module.io.model.query.IoOrderQuery;
 import com.zhb.wms2.module.io.model.vo.IoOrderPageVO;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
 
 /**
  * IoOrderService 服务接口
@@ -39,6 +42,11 @@ public interface IoOrderService extends IService<IoOrder> {
      * 按商品统计出入库流水数量。
      */
     StockIoDetailStatVO getDetailStatByProductId(StockIoDetailQuery query);
+
+    /**
+     * 按商品导出出入库流水。
+     */
+    void exportDetailByProductId(StockIoDetailQuery query, HttpServletResponse response) throws IOException;
 
     /**
      * 根据申请生成出入库单。

@@ -28,6 +28,7 @@ import com.zhb.wms2.module.product.model.vo.StockDistributionGroupVO;
 import com.zhb.wms2.module.product.model.vo.StockDistributionItemVO;
 import com.zhb.wms2.module.product.service.ProductService;
 import com.zhb.wms2.module.product.service.ProductStockDetailService;
+import com.zhb.wms2.util.PdfExportUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -224,6 +225,16 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             writer.autoSizeColumnAll();
             writer.flush(response.getOutputStream(), true);
         }
+    }
+
+    /**
+     * 导出库存货位分布 PDF。
+     */
+    @Override
+    public void exportDistributionPdf(StockDistributionQuery query, HttpServletResponse response) throws IOException {
+        List<StockDistributionGroupVO> groupList = listDistribution(query);
+        PdfExportUtil.writePdf("库存货位分布.pdf", "库存货位分布", false,
+                buildDistributionPdfBody(groupList), response);
     }
 
     /**
@@ -490,6 +501,38 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         String locationCode = StrUtil.blankToDefault(group.getLocationCode(), "-");
         Long totalQty = group.getTotalQty() == null ? 0L : group.getTotalQty();
         return "货位：" + locationCode + "，合计：" + totalQty;
+    }
+
+    /**
+     * 构建库存货位分布 PDF 主体。
+     */
+    private String buildDistributionPdfBody(List<StockDistributionGroupVO> groupList) {
+        if (groupList == null || groupList.isEmpty()) {
+            return "<div class=\"empty\">暂无数据</div>";
+        }
+        StringBuilder html = new StringBuilder();
+        for (StockDistributionGroupVO group : groupList) {
+            List<StockDistributionItemVO> itemList = group.getItemList();
+            if (itemList == null || itemList.isEmpty()) {
+                continue;
+            }
+            html.append("<div class=\"section\">")
+                    .append("<div class=\"section-title\">")
+                    .append(PdfExportUtil.escape(buildLocationTitle(group)))
+                    .append("</div>")
+                    .append("<table><thead><tr>")
+                    .append("<th>名称</th><th>型号</th><th>数量</th>")
+                    .append("</tr></thead><tbody>");
+            for (StockDistributionItemVO item : itemList) {
+                html.append("<tr>")
+                        .append("<td>").append(PdfExportUtil.escape(item.getProductName())).append("</td>")
+                        .append("<td>").append(PdfExportUtil.escape(item.getModel())).append("</td>")
+                        .append("<td>").append(item.getQty() == null ? "" : item.getQty()).append("</td>")
+                        .append("</tr>");
+            }
+            html.append("</tbody></table></div>");
+        }
+        return html.toString();
     }
 
     /**

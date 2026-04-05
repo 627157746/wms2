@@ -49,6 +49,11 @@ public interface IoOrderService extends IService<IoOrder> {
     void exportDetailByProductId(StockIoDetailQuery query, HttpServletResponse response) throws IOException;
 
     /**
+     * 按商品导出出入库流水 PDF。
+     */
+    void exportDetailByProductIdPdf(StockIoDetailQuery query, HttpServletResponse response) throws IOException;
+
+    /**
      * 根据申请生成出入库单。
      */
     Long generateOrderByApply(Long applyId);

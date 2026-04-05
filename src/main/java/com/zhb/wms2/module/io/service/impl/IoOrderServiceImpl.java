@@ -36,6 +36,7 @@ import com.zhb.wms2.module.product.model.vo.StockIoDetailVO;
 import com.zhb.wms2.module.product.service.ProductService;
 import com.zhb.wms2.module.product.service.ProductStockDetailService;
 import com.zhb.wms2.module.product.service.support.ProductStockSummaryService;
+import com.zhb.wms2.util.PdfExportUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -210,6 +211,18 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     }
 
     /**
+     * 按商品导出出入库明细流水 PDF。
+     */
+    @Override
+    public void exportDetailByProductIdPdf(StockIoDetailQuery query, HttpServletResponse response) throws IOException {
+        validateStockIoDetailQuery(query);
+        List<IoOrderDetail> detailList = ioOrderDetailMapper.selectListByProductId(query);
+        List<StockIoDetailVO> voList = buildStockIoDetailVOList(detailList);
+        PdfExportUtil.writePdf("商品出入库明细.pdf", "商品出入库明细", true,
+                buildStockIoDetailPdfBody(voList), response);
+    }
+
+    /**
      * 查询每条出入库明细当前对应的库存数量。
      */
     private Map<Long, Long> buildCurrentStockQtyMap(List<IoOrderDetail> detailList) {
@@ -298,6 +311,46 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 item.getProduct() == null ? null : item.getProduct().getModel(),
                 item.getCurrentStockQty()
         )));
+    }
+
+    /**
+     * 构建商品出入库明细 PDF 主体。
+     */
+    private String buildStockIoDetailPdfBody(List<StockIoDetailVO> voList) {
+        if (voList == null || voList.isEmpty()) {
+            return "<div class=\"empty\">暂无数据</div>";
+        }
+        StringBuilder html = new StringBuilder();
+        html.append("<table><thead><tr>")
+                .append("<th>单号</th>")
+                .append("<th>单据类型</th>")
+                .append("<th>业务日期</th>")
+                .append("<th>数量</th>")
+                .append("<th>送货员</th>")
+                .append("<th>客户</th>")
+                .append("<th>业务员</th>")
+                .append("<th>商品名称</th>")
+                .append("<th>商品编号</th>")
+                .append("<th>商品型号</th>")
+                .append("<th>该笔出入库后的库存</th>")
+                .append("</tr></thead><tbody>");
+        for (StockIoDetailVO item : voList) {
+            html.append("<tr>")
+                    .append("<td>").append(PdfExportUtil.escape(item.getOrderNo())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(item.getOrderTypeName())).append("</td>")
+                    .append("<td>").append(item.getBizDate() == null ? "" : PdfExportUtil.escape(item.getBizDate().toString())).append("</td>")
+                    .append("<td>").append(item.getQty() == null ? "" : item.getQty()).append("</td>")
+                    .append("<td>").append(item.getDeliveryman() == null ? "" : PdfExportUtil.escape(item.getDeliveryman().getName())).append("</td>")
+                    .append("<td>").append(item.getCustomer() == null ? "" : PdfExportUtil.escape(item.getCustomer().getName())).append("</td>")
+                    .append("<td>").append(item.getSalesman() == null ? "" : PdfExportUtil.escape(item.getSalesman().getName())).append("</td>")
+                    .append("<td>").append(item.getProduct() == null ? "" : PdfExportUtil.escape(item.getProduct().getName())).append("</td>")
+                    .append("<td>").append(item.getProduct() == null ? "" : PdfExportUtil.escape(item.getProduct().getCode())).append("</td>")
+                    .append("<td>").append(item.getProduct() == null ? "" : PdfExportUtil.escape(item.getProduct().getModel())).append("</td>")
+                    .append("<td>").append(item.getCurrentStockQty() == null ? "" : item.getCurrentStockQty()).append("</td>")
+                    .append("</tr>");
+        }
+        html.append("</tbody></table>");
+        return html.toString();
     }
 
     /**

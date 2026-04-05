@@ -59,6 +59,11 @@ public interface ProductService extends IService<Product> {
     void exportDistribution(StockDistributionQuery query, HttpServletResponse response) throws IOException;
 
     /**
+     * 导出商品库存分布 PDF。
+     */
+    void exportDistributionPdf(StockDistributionQuery query, HttpServletResponse response) throws IOException;
+
+    /**
      * 删除商品。
      */
     void removeByIdChecked(Long id);

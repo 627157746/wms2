@@ -121,6 +121,15 @@ public class IoOrderController {
         ioOrderService.exportDetailByProductId(query, response);
     }
 
+    @GetMapping("/ioDetail/exportPdf")
+    @Operation(summary = "导出商品出入库明细PDF")
+    public void ioDetailExportPdf(
+            @Parameter(description = "查询条件")
+            @Validated StockIoDetailQuery query,
+            HttpServletResponse response) throws IOException {
+        ioOrderService.exportDetailByProductIdPdf(query, response);
+    }
+
     @GetMapping("/ioDetail/stat")
     @Operation(summary = "统计商品出入库明细")
     public R<StockIoDetailStatVO> ioDetailStat(

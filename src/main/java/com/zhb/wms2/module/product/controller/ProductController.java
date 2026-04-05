@@ -108,6 +108,15 @@ public class ProductController {
         productService.exportDistribution(query, response);
     }
 
+    @GetMapping("/distribution/exportPdf")
+    @Operation(summary = "导出库存货位分布PDF")
+    public void exportDistributionPdf(
+            @Parameter(description = "查询条件")
+            @Validated StockDistributionQuery query,
+            HttpServletResponse response) throws IOException {
+        productService.exportDistributionPdf(query, response);
+    }
+
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除商品")

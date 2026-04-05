@@ -22,6 +22,7 @@ import com.zhb.wms2.module.io.mapper.IoApplyMapper;
 import com.zhb.wms2.module.io.mapper.IoOrderMapper;
 import com.zhb.wms2.module.io.model.dto.IoApplyCreateDTO;
 import com.zhb.wms2.module.io.model.dto.IoApplyCreateDetailDTO;
+import com.zhb.wms2.module.io.model.dto.IoApplyDetailLocationUpdateDTO;
 import com.zhb.wms2.module.io.model.dto.IoApplyUpdateDTO;
 import com.zhb.wms2.module.io.model.entity.IoApply;
 import com.zhb.wms2.module.io.model.entity.IoApplyDetail;
@@ -192,6 +193,30 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         // 修改申请时直接重建明细，避免逐条 diff 带来额外复杂度。
         ioApplyDetailService.removeByApplyIdChecked(dto.getId());
         saveApplyDetails(dto.getId(), dto.getDetailList());
+    }
+
+    /**
+     * 修改未审批申请的单条明细货位。
+     */
+    @Override
+    public void updateDetailLocation(IoApplyDetailLocationUpdateDTO dto) {
+        IoApplyDetail detail = ioApplyDetailService.getById(dto.getDetailId());
+        if (detail == null) {
+            throw new BaseException("出入库申请明细不存在");
+        }
+        IoApply ioApply = getById(detail.getApplyId());
+        if (ioApply == null) {
+            throw new BaseException("出入库申请不存在");
+        }
+
+        validateApplyCanUpdate(ioApply);
+        validateLocationExists(dto.getLocationId());
+        if (Objects.equals(detail.getLocationId(), dto.getLocationId())) {
+            return;
+        }
+
+        detail.setLocationId(dto.getLocationId());
+        ioApplyDetailService.updateByIdChecked(detail);
     }
 
     /**
@@ -371,6 +396,19 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         List<Product> productList = productMapper.selectBatchIds(productIds);
         if (productList.size() != productIds.size()) {
             throw new BaseException("申请明细中存在不存在的商品");
+        }
+    }
+
+    /**
+     * 校验货位存在。
+     */
+    private void validateLocationExists(Long locationId) {
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Map<Long, ProductLocation> productLocationMap = dictMap.getProductLocationMap() == null
+                ? Map.of()
+                : dictMap.getProductLocationMap();
+        if (!productLocationMap.containsKey(locationId)) {
+            throw new BaseException("商品货位不存在");
         }
     }
 

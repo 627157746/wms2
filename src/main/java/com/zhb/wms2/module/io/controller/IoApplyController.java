@@ -6,6 +6,7 @@ import com.zhb.wms2.common.model.R;
 import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
 import com.zhb.wms2.module.io.model.dto.IoApplyCreateDTO;
+import com.zhb.wms2.module.io.model.dto.IoApplyDetailLocationUpdateDTO;
 import com.zhb.wms2.module.io.model.dto.IoApplyUpdateDTO;
 import com.zhb.wms2.module.io.model.query.IoApplyQuery;
 import com.zhb.wms2.module.io.model.vo.IoApplyPageVO;
@@ -75,6 +76,16 @@ public class IoApplyController {
             @Parameter(description = "出入库申请", required = true)
             @RequestBody @Validated(Update.class) IoApplyUpdateDTO dto) {
         ioApplyService.updateApply(dto);
+        return R.optOk();
+    }
+
+    @PutMapping("/detail/location")
+    @Operation(summary = "修改出入库申请明细货位")
+    @MethodLock(name = "stock", key = "#p0.detailId")
+    public R<Void> updateDetailLocation(
+            @Parameter(description = "明细货位", required = true)
+            @RequestBody @Validated IoApplyDetailLocationUpdateDTO dto) {
+        ioApplyService.updateDetailLocation(dto);
         return R.optOk();
     }
 

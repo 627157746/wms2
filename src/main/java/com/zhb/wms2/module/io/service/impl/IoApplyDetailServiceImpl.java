@@ -32,6 +32,17 @@ public class IoApplyDetailServiceImpl extends ServiceImpl<IoApplyDetailMapper, I
     }
 
     /**
+     * 修改申请明细。
+     */
+    @Override
+    public void updateByIdChecked(IoApplyDetail detail) {
+        // 单条货位调整直接更新目标明细，避免重新全量重建。
+        if (!super.updateById(detail)) {
+            throw new BaseException("申请明细不存在");
+        }
+    }
+
+    /**
      * 按申请 ID 删除明细。
      */
     @Override

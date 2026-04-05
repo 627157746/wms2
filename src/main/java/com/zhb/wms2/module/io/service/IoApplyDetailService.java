@@ -19,6 +19,11 @@ public interface IoApplyDetailService extends IService<IoApplyDetail> {
     void saveBatchChecked(List<IoApplyDetail> detailList);
 
     /**
+     * 修改申请明细。
+     */
+    void updateByIdChecked(IoApplyDetail detail);
+
+    /**
      * 按申请 ID 删除明细。
      */
     void removeByApplyIdChecked(Long applyId);

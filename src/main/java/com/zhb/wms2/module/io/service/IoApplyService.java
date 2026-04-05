@@ -3,6 +3,7 @@ package com.zhb.wms2.module.io.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zhb.wms2.module.io.model.dto.IoApplyCreateDTO;
+import com.zhb.wms2.module.io.model.dto.IoApplyDetailLocationUpdateDTO;
 import com.zhb.wms2.module.io.model.dto.IoApplyUpdateDTO;
 import com.zhb.wms2.module.io.model.entity.IoApply;
 import com.zhb.wms2.module.io.model.query.IoApplyQuery;
@@ -35,6 +36,11 @@ public interface IoApplyService extends IService<IoApply> {
      * 修改出入库申请。
      */
     void updateApply(IoApplyUpdateDTO dto);
+
+    /**
+     * 修改出入库申请明细货位。
+     */
+    void updateDetailLocation(IoApplyDetailLocationUpdateDTO dto);
 
     /**
      * 审批出入库申请。

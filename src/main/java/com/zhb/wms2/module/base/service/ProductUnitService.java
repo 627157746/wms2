@@ -2,6 +2,7 @@ package com.zhb.wms2.module.base.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.zhb.wms2.module.base.model.dto.BaseSortUpdateDTO;
 import com.zhb.wms2.module.base.model.entity.ProductUnit;
 import com.zhb.wms2.module.base.model.query.ProductUnitQuery;
 import java.util.List;
@@ -33,6 +34,11 @@ public interface ProductUnitService extends IService<ProductUnit> {
      * 修改商品单位。
      */
     void updateByIdChecked(ProductUnit unit);
+
+    /**
+     * 批量修改排序。
+     */
+    void updateSortOrderBatch(List<BaseSortUpdateDTO> dtoList);
 
     /**
      * 删除商品单位。

@@ -2,6 +2,7 @@ package com.zhb.wms2.module.base.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.zhb.wms2.module.base.model.dto.BaseSortUpdateDTO;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
 import com.zhb.wms2.module.base.model.query.DeliverymanQuery;
 import java.util.List;
@@ -33,6 +34,11 @@ public interface DeliverymanService extends IService<Deliveryman> {
      * 修改送货员。
      */
     void updateByIdChecked(Deliveryman deliveryman);
+
+    /**
+     * 批量修改排序。
+     */
+    void updateSortOrderBatch(List<BaseSortUpdateDTO> dtoList);
 
     /**
      * 删除送货员。

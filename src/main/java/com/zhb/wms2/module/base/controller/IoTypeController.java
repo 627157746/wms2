@@ -4,12 +4,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.zhb.wms2.common.model.R;
 import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
+import com.zhb.wms2.module.base.model.dto.BaseSortUpdateDTO;
 import com.zhb.wms2.module.base.model.entity.IoType;
 import com.zhb.wms2.module.base.model.query.IoTypeQuery;
 import com.zhb.wms2.module.base.service.IoTypeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -48,6 +50,15 @@ public class IoTypeController {
             @Parameter(description = "出入库类型", required = true)
             @RequestBody @Validated(Update.class) IoType ioType) {
         ioTypeService.updateByIdChecked(ioType);
+        return R.optOk();
+    }
+
+    @PutMapping("/sort")
+    @Operation(summary = "批量修改出入库类型排序")
+    public R<Void> sort(
+            @Parameter(description = "排序参数", required = true)
+            @RequestBody @Validated List<@Valid BaseSortUpdateDTO> dtoList) {
+        ioTypeService.updateSortOrderBatch(dtoList);
         return R.optOk();
     }
 

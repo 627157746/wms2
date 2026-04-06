@@ -2,6 +2,7 @@ package com.zhb.wms2.module.base.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.zhb.wms2.module.base.model.dto.BaseSortUpdateDTO;
 import com.zhb.wms2.module.base.model.entity.IoType;
 import com.zhb.wms2.module.base.model.query.IoTypeQuery;
 import java.util.List;
@@ -33,6 +34,11 @@ public interface IoTypeService extends IService<IoType> {
      * 修改出入库类型。
      */
     void updateByIdChecked(IoType ioType);
+
+    /**
+     * 批量修改排序。
+     */
+    void updateSortOrderBatch(List<BaseSortUpdateDTO> dtoList);
 
     /**
      * 删除出入库类型。

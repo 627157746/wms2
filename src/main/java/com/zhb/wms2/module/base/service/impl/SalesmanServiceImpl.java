@@ -1,5 +1,6 @@
 package com.zhb.wms2.module.base.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -7,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.mapper.SalesmanMapper;
+import com.zhb.wms2.module.base.model.dto.BaseSortUpdateDTO;
 import com.zhb.wms2.module.base.model.entity.Salesman;
 import com.zhb.wms2.module.base.model.query.SalesmanQuery;
 import com.zhb.wms2.module.base.service.SalesmanService;
@@ -15,9 +17,12 @@ import com.zhb.wms2.module.io.model.entity.IoApply;
 import com.zhb.wms2.module.io.model.entity.IoOrder;
 import com.zhb.wms2.module.io.service.IoApplyService;
 import com.zhb.wms2.module.io.service.IoOrderService;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * SalesmanServiceImpl 服务实现
@@ -75,6 +80,35 @@ public class SalesmanServiceImpl extends ServiceImpl<SalesmanMapper, Salesman> i
             throw new BaseException("业务员不存在");
         }
         // 修改后清缓存，保证业务单据读取到最新业务员信息。
+        baseDictMapStore.clearSalesmanMap();
+    }
+
+    /**
+     * 批量修改业务员排序并清理字典缓存。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSortOrderBatch(List<BaseSortUpdateDTO> dtoList) {
+        if (CollUtil.isEmpty(dtoList)) {
+            throw new BaseException("排序列表不能为空");
+        }
+        Set<Long> idSet = new HashSet<>();
+        List<Salesman> updateList = dtoList.stream().map(dto -> {
+            if (!idSet.add(dto.getId())) {
+                throw new BaseException("业务员ID不能重复");
+            }
+            Salesman salesman = new Salesman();
+            salesman.setId(dto.getId());
+            salesman.setSortOrder(dto.getSortOrder());
+            return salesman;
+        }).toList();
+        long count = count(new LambdaQueryWrapper<Salesman>().in(Salesman::getId, idSet));
+        if (count != idSet.size()) {
+            throw new BaseException("存在不存在的业务员");
+        }
+        if (!updateBatchById(updateList)) {
+            throw new BaseException("业务员排序修改失败");
+        }
         baseDictMapStore.clearSalesmanMap();
     }
 

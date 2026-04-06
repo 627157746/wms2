@@ -1,5 +1,6 @@
 package com.zhb.wms2.module.base.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -7,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.mapper.ProductLocationMapper;
+import com.zhb.wms2.module.base.model.dto.BaseSortUpdateDTO;
 import com.zhb.wms2.module.base.model.entity.ProductLocation;
 import com.zhb.wms2.module.base.model.query.ProductLocationQuery;
 import com.zhb.wms2.module.base.service.ProductLocationService;
@@ -19,8 +21,11 @@ import com.zhb.wms2.module.product.model.entity.ProductStockDetail;
 import com.zhb.wms2.module.product.service.ProductStockDetailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * ProductLocationServiceImpl 服务实现
@@ -87,6 +92,35 @@ public class ProductLocationServiceImpl extends ServiceImpl<ProductLocationMappe
             throw new BaseException("商品货位不存在");
         }
         // 修改后清缓存，保证单据录入和库存展示都拿到新编码。
+        baseDictMapStore.clearProductLocationMap();
+    }
+
+    /**
+     * 批量修改商品货位排序并清理字典缓存。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSortOrderBatch(List<BaseSortUpdateDTO> dtoList) {
+        if (CollUtil.isEmpty(dtoList)) {
+            throw new BaseException("排序列表不能为空");
+        }
+        Set<Long> idSet = new HashSet<>();
+        List<ProductLocation> updateList = dtoList.stream().map(dto -> {
+            if (!idSet.add(dto.getId())) {
+                throw new BaseException("商品货位ID不能重复");
+            }
+            ProductLocation location = new ProductLocation();
+            location.setId(dto.getId());
+            location.setSortOrder(dto.getSortOrder());
+            return location;
+        }).toList();
+        long count = count(new LambdaQueryWrapper<ProductLocation>().in(ProductLocation::getId, idSet));
+        if (count != idSet.size()) {
+            throw new BaseException("存在不存在的商品货位");
+        }
+        if (!updateBatchById(updateList)) {
+            throw new BaseException("商品货位排序修改失败");
+        }
         baseDictMapStore.clearProductLocationMap();
     }
 

@@ -4,12 +4,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.zhb.wms2.common.model.R;
 import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
+import com.zhb.wms2.module.base.model.dto.BaseSortUpdateDTO;
 import com.zhb.wms2.module.base.model.entity.Salesman;
 import com.zhb.wms2.module.base.model.query.SalesmanQuery;
 import com.zhb.wms2.module.base.service.SalesmanService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -53,6 +55,15 @@ public class SalesmanController {
             @Parameter(description = "业务员", required = true)
             @RequestBody @Validated(Update.class) Salesman salesman) {
         salesmanService.updateByIdChecked(salesman);
+        return R.optOk();
+    }
+
+    @PutMapping("/sort")
+    @Operation(summary = "批量修改业务员排序")
+    public R<Void> sort(
+            @Parameter(description = "排序参数", required = true)
+            @RequestBody @Validated List<@Valid BaseSortUpdateDTO> dtoList) {
+        salesmanService.updateSortOrderBatch(dtoList);
         return R.optOk();
     }
 

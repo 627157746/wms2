@@ -1,5 +1,6 @@
 package com.zhb.wms2.module.base.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -9,6 +10,7 @@ import com.zhb.wms2.common.enums.IoBizTypeEnum;
 import com.zhb.wms2.common.enums.ScopeEnum;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.mapper.DeliverymanMapper;
+import com.zhb.wms2.module.base.model.dto.BaseSortUpdateDTO;
 import com.zhb.wms2.module.base.model.entity.Deliveryman;
 import com.zhb.wms2.module.base.model.query.DeliverymanQuery;
 import com.zhb.wms2.module.base.service.DeliverymanService;
@@ -19,8 +21,11 @@ import com.zhb.wms2.module.io.service.IoApplyService;
 import com.zhb.wms2.module.io.service.IoOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * DeliverymanServiceImpl 服务实现
@@ -80,6 +85,35 @@ public class DeliverymanServiceImpl extends ServiceImpl<DeliverymanMapper, Deliv
             throw new BaseException("送货员不存在");
         }
         // 修改后清缓存，避免下游单据继续命中过期送货员信息。
+        baseDictMapStore.clearDeliverymanMap();
+    }
+
+    /**
+     * 批量修改送货员排序并清理字典缓存。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSortOrderBatch(List<BaseSortUpdateDTO> dtoList) {
+        if (CollUtil.isEmpty(dtoList)) {
+            throw new BaseException("排序列表不能为空");
+        }
+        Set<Long> idSet = new HashSet<>();
+        List<Deliveryman> updateList = dtoList.stream().map(dto -> {
+            if (!idSet.add(dto.getId())) {
+                throw new BaseException("送货员ID不能重复");
+            }
+            Deliveryman deliveryman = new Deliveryman();
+            deliveryman.setId(dto.getId());
+            deliveryman.setSortOrder(dto.getSortOrder());
+            return deliveryman;
+        }).toList();
+        long count = count(new LambdaQueryWrapper<Deliveryman>().in(Deliveryman::getId, idSet));
+        if (count != idSet.size()) {
+            throw new BaseException("存在不存在的送货员");
+        }
+        if (!updateBatchById(updateList)) {
+            throw new BaseException("送货员排序修改失败");
+        }
         baseDictMapStore.clearDeliverymanMap();
     }
 

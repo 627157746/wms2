@@ -1,5 +1,6 @@
 package com.zhb.wms2.module.base.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -7,15 +8,19 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.mapper.ProductUnitMapper;
+import com.zhb.wms2.module.base.model.dto.BaseSortUpdateDTO;
 import com.zhb.wms2.module.base.model.entity.ProductUnit;
 import com.zhb.wms2.module.base.model.query.ProductUnitQuery;
 import com.zhb.wms2.module.base.service.ProductUnitService;
 import com.zhb.wms2.module.base.service.support.BaseDictMapStore;
 import com.zhb.wms2.module.product.mapper.ProductMapper;
 import com.zhb.wms2.module.product.model.entity.Product;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * ProductUnitServiceImpl 服务实现
@@ -80,6 +85,35 @@ public class ProductUnitServiceImpl extends ServiceImpl<ProductUnitMapper, Produ
             throw new BaseException("商品单位不存在");
         }
         // 修改后清缓存，避免商品页继续展示旧单位名。
+        baseDictMapStore.clearProductUnitMap();
+    }
+
+    /**
+     * 批量修改商品单位排序并清理字典缓存。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSortOrderBatch(List<BaseSortUpdateDTO> dtoList) {
+        if (CollUtil.isEmpty(dtoList)) {
+            throw new BaseException("排序列表不能为空");
+        }
+        Set<Long> idSet = new HashSet<>();
+        List<ProductUnit> updateList = dtoList.stream().map(dto -> {
+            if (!idSet.add(dto.getId())) {
+                throw new BaseException("商品单位ID不能重复");
+            }
+            ProductUnit unit = new ProductUnit();
+            unit.setId(dto.getId());
+            unit.setSortOrder(dto.getSortOrder());
+            return unit;
+        }).toList();
+        long count = count(new LambdaQueryWrapper<ProductUnit>().in(ProductUnit::getId, idSet));
+        if (count != idSet.size()) {
+            throw new BaseException("存在不存在的商品单位");
+        }
+        if (!updateBatchById(updateList)) {
+            throw new BaseException("商品单位排序修改失败");
+        }
         baseDictMapStore.clearProductUnitMap();
     }
 

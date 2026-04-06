@@ -4,12 +4,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.zhb.wms2.common.model.R;
 import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
+import com.zhb.wms2.module.base.model.dto.BaseSortUpdateDTO;
 import com.zhb.wms2.module.base.model.entity.ProductUnit;
 import com.zhb.wms2.module.base.model.query.ProductUnitQuery;
 import com.zhb.wms2.module.base.service.ProductUnitService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -46,6 +48,15 @@ public class ProductUnitController {
             @Parameter(description = "商品单位", required = true)
             @RequestBody @Validated(Update.class) ProductUnit unit) {
         productUnitService.updateByIdChecked(unit);
+        return R.optOk();
+    }
+
+    @PutMapping("/sort")
+    @Operation(summary = "批量修改商品单位排序")
+    public R<Void> sort(
+            @Parameter(description = "排序参数", required = true)
+            @RequestBody @Validated List<@Valid BaseSortUpdateDTO> dtoList) {
+        productUnitService.updateSortOrderBatch(dtoList);
         return R.optOk();
     }
 

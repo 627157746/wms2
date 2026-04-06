@@ -1,5 +1,6 @@
 package com.zhb.wms2.module.base.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -8,6 +9,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zhb.wms2.common.enums.ScopeEnum;
 import com.zhb.wms2.common.exception.BaseException;
 import com.zhb.wms2.module.base.mapper.IoTypeMapper;
+import com.zhb.wms2.module.base.model.dto.BaseSortUpdateDTO;
 import com.zhb.wms2.module.base.model.entity.IoType;
 import com.zhb.wms2.module.base.model.query.IoTypeQuery;
 import com.zhb.wms2.module.base.service.IoTypeService;
@@ -18,8 +20,11 @@ import com.zhb.wms2.module.io.service.IoApplyService;
 import com.zhb.wms2.module.io.service.IoOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * IoTypeServiceImpl 服务实现
@@ -85,6 +90,35 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
             throw new BaseException("出入库类型不存在");
         }
         // 修改后清缓存，保证申请单和出入库单校验读取到最新范围。
+        baseDictMapStore.clearIoTypeMap();
+    }
+
+    /**
+     * 批量修改出入库类型排序并清理字典缓存。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSortOrderBatch(List<BaseSortUpdateDTO> dtoList) {
+        if (CollUtil.isEmpty(dtoList)) {
+            throw new BaseException("排序列表不能为空");
+        }
+        Set<Long> idSet = new HashSet<>();
+        List<IoType> updateList = dtoList.stream().map(dto -> {
+            if (!idSet.add(dto.getId())) {
+                throw new BaseException("出入库类型ID不能重复");
+            }
+            IoType ioType = new IoType();
+            ioType.setId(dto.getId());
+            ioType.setSortOrder(dto.getSortOrder());
+            return ioType;
+        }).toList();
+        long count = count(new LambdaQueryWrapper<IoType>().in(IoType::getId, idSet));
+        if (count != idSet.size()) {
+            throw new BaseException("存在不存在的出入库类型");
+        }
+        if (!updateBatchById(updateList)) {
+            throw new BaseException("出入库类型排序修改失败");
+        }
         baseDictMapStore.clearIoTypeMap();
     }
 

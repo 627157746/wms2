@@ -1,7 +1,6 @@
 package com.zhb.wms2.module.io.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.zhb.wms2.common.lock.MethodLock;
 import com.zhb.wms2.common.model.R;
 import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
@@ -46,7 +45,6 @@ public class IoApplyController {
 
     @PostMapping("/{id}/generateOrder")
     @Operation(summary = "根据申请生成出入库单")
-    @MethodLock(name = "stock", key = "#p0")
     public R<Long> generateOrder(
             @Parameter(description = "出入库申请ID", required = true)
             @PathVariable @NotNull @Min(1) Long id) {
@@ -71,7 +69,6 @@ public class IoApplyController {
 
     @PutMapping
     @Operation(summary = "修改出入库申请")
-    @MethodLock(name = "stock", key = "#p0.id")
     public R<Void> update(
             @Parameter(description = "出入库申请", required = true)
             @RequestBody @Validated(Update.class) IoApplyUpdateDTO dto) {
@@ -81,7 +78,6 @@ public class IoApplyController {
 
     @PutMapping("/detail/location")
     @Operation(summary = "修改出入库申请明细货位")
-    @MethodLock(name = "stock", key = "#p0.detailId")
     public R<Void> updateDetailLocation(
             @Parameter(description = "明细货位", required = true)
             @RequestBody @Validated IoApplyDetailLocationUpdateDTO dto) {
@@ -91,7 +87,6 @@ public class IoApplyController {
 
     @PutMapping("/{id}/approve")
     @Operation(summary = "审批出入库申请")
-    @MethodLock(name = "stock", key = "#p0")
     public R<Void> approve(
             @Parameter(description = "出入库申请ID", required = true)
             @PathVariable @NotNull @Min(1) Long id) {
@@ -101,7 +96,6 @@ public class IoApplyController {
 
     @PutMapping("/{id}/cancelApprove")
     @Operation(summary = "取消审批出入库申请")
-    @MethodLock(name = "stock", key = "#p0")
     public R<Void> cancelApprove(
             @Parameter(description = "出入库申请ID", required = true)
             @PathVariable @NotNull @Min(1) Long id) {
@@ -111,7 +105,6 @@ public class IoApplyController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除出入库申请")
-    @MethodLock(name = "stock", key = "#p0")
     public R<Void> delete(
             @Parameter(description = "出入库申请ID", required = true)
             @PathVariable @NotNull @Min(1) Long id) {

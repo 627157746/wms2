@@ -1,7 +1,6 @@
 package com.zhb.wms2.module.io.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.zhb.wms2.common.lock.MethodLock;
 import com.zhb.wms2.common.model.R;
 import com.zhb.wms2.common.validated.Save;
 import com.zhb.wms2.common.validated.Update;
@@ -66,7 +65,6 @@ public class IoOrderController {
 
     @PutMapping
     @Operation(summary = "修改出入库单")
-    @MethodLock(name = "stock", key = "#p0.id")
     public R<Void> update(
             @Parameter(description = "出入库单", required = true)
             @RequestBody @Validated({Save.class, Update.class}) IoOrderUpdateDTO dto) {
@@ -76,7 +74,6 @@ public class IoOrderController {
 
     @PutMapping("/detail/location")
     @Operation(summary = "修改出入库单明细货位")
-    @MethodLock(name = "stock", key = "#p0.detailId")
     public R<Void> updateDetailLocation(
             @Parameter(description = "明细货位", required = true)
             @RequestBody @Validated IoOrderDetailLocationUpdateDTO dto) {
@@ -86,7 +83,6 @@ public class IoOrderController {
 
     @PutMapping("/{id}/pick")
     @Operation(summary = "出库单拣货")
-    @MethodLock(name = "stock", key = "#p0")
     public R<Void> pick(
             @Parameter(description = "出入库单ID", required = true)
             @PathVariable @NotNull @Min(1) Long id) {
@@ -96,7 +92,6 @@ public class IoOrderController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除出入库单")
-    @MethodLock(name = "stock", key = "#p0")
     public R<Void> delete(
             @Parameter(description = "出入库单ID", required = true)
             @PathVariable @NotNull @Min(1) Long id) {

@@ -1,7 +1,6 @@
 package com.zhb.wms2.module.product.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.zhb.wms2.common.lock.MethodLock;
 import com.zhb.wms2.common.model.R;
 import com.zhb.wms2.module.product.model.dto.LocationTransferCreateDTO;
 import com.zhb.wms2.module.product.model.query.LocationTransferQuery;
@@ -12,11 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 转货位控制器
@@ -34,7 +29,6 @@ public class LocationTransferController {
 
     @PostMapping
     @Operation(summary = "发起转货位")
-    @MethodLock(name = "stock", key = "#p0.productId")
     public R<Long> create(
             @Parameter(description = "转货位参数", required = true)
             @RequestBody @Validated LocationTransferCreateDTO dto) {

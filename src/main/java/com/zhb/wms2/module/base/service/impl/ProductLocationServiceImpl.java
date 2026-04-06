@@ -47,6 +47,7 @@ public class ProductLocationServiceImpl extends ServiceImpl<ProductLocationMappe
         if (!super.save(location)) {
             throw new BaseException("商品货位新增失败");
         }
+        applyDefaultSortOrder(location.getId());
         // 货位属于全局字典，新增后立即清缓存。
         baseDictMapStore.clearProductLocationMap();
     }
@@ -67,7 +68,9 @@ public class ProductLocationServiceImpl extends ServiceImpl<ProductLocationMappe
     @Override
     public List<ProductLocation> listAll() {
         // 基础资料下拉直接读取全量货位。
-        return list(new LambdaQueryWrapper<ProductLocation>().orderByDesc(ProductLocation::getId));
+        return list(new LambdaQueryWrapper<ProductLocation>()
+                .orderByDesc(ProductLocation::getSortOrder)
+                .orderByDesc(ProductLocation::getId));
     }
 
     /**
@@ -122,6 +125,7 @@ public class ProductLocationServiceImpl extends ServiceImpl<ProductLocationMappe
         // 货位查询保持简单，只支持按编码模糊搜索。
         return new LambdaQueryWrapper<ProductLocation>()
                 .like(StrUtil.isNotBlank(query.getCode()), ProductLocation::getCode, query.getCode())
+                .orderByDesc(ProductLocation::getSortOrder)
                 .orderByDesc(ProductLocation::getId);
     }
 
@@ -135,6 +139,18 @@ public class ProductLocationServiceImpl extends ServiceImpl<ProductLocationMappe
                 .ne(excludeId != null, ProductLocation::getId, excludeId);
         if (count(wrapper) > 0) {
             throw new BaseException("货位编码已存在");
+        }
+    }
+
+    /**
+     * 新增后按主键回填默认排序。
+     */
+    private void applyDefaultSortOrder(Long id) {
+        ProductLocation updateEntity = new ProductLocation();
+        updateEntity.setId(id);
+        updateEntity.setSortOrder(Math.toIntExact(id));
+        if (!updateById(updateEntity)) {
+            throw new BaseException("商品货位默认排序回填失败");
         }
     }
 }

@@ -44,6 +44,7 @@ public class DeliverymanServiceImpl extends ServiceImpl<DeliverymanMapper, Deliv
         if (!super.save(deliveryman)) {
             throw new BaseException("送货员新增失败");
         }
+        applyDefaultSortOrder(deliveryman.getId());
         // 送货员属于字典缓存数据，新增后立即清理缓存。
         baseDictMapStore.clearDeliverymanMap();
     }
@@ -64,6 +65,7 @@ public class DeliverymanServiceImpl extends ServiceImpl<DeliverymanMapper, Deliv
     @Override
     public List<Deliveryman> listAllByScope(Integer scope) {
         LambdaQueryWrapper<Deliveryman> wrapper = new LambdaQueryWrapper<Deliveryman>()
+                .orderByDesc(Deliveryman::getSortOrder)
                 .orderByDesc(Deliveryman::getId);
         // 同时返回“不限”范围数据，保证入库/出库下拉框都能复用。
         return list(wrapper.and(w -> w.in(Deliveryman::getScope, ScopeEnum.COMMON.getCode(), scope)));
@@ -122,6 +124,19 @@ public class DeliverymanServiceImpl extends ServiceImpl<DeliverymanMapper, Deliv
                 .like(StrUtil.isNotBlank(query.getName()), Deliveryman::getName, query.getName())
                 .like(StrUtil.isNotBlank(query.getPhone()), Deliveryman::getPhone, query.getPhone())
                 .eq(query.getScope() != null, Deliveryman::getScope, query.getScope())
+                .orderByDesc(Deliveryman::getSortOrder)
                 .orderByDesc(Deliveryman::getId);
+    }
+
+    /**
+     * 新增后按主键回填默认排序。
+     */
+    private void applyDefaultSortOrder(Long id) {
+        Deliveryman updateEntity = new Deliveryman();
+        updateEntity.setId(id);
+        updateEntity.setSortOrder(Math.toIntExact(id));
+        if (!updateById(updateEntity)) {
+            throw new BaseException("送货员默认排序回填失败");
+        }
     }
 }

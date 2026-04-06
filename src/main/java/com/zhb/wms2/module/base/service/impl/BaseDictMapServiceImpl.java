@@ -98,6 +98,7 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
             deliverymanMap = baseDictMapStore.getDeliverymanMap();
             if (deliverymanMap == null) {
                 deliverymanMap = buildMap(deliverymanMapper.selectList(new LambdaQueryWrapper<Deliveryman>()
+                        .orderByDesc(Deliveryman::getSortOrder)
                         .orderByDesc(Deliveryman::getId)), Deliveryman::getId);
                 baseDictMapStore.setDeliverymanMap(deliverymanMap);
             }
@@ -118,6 +119,7 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
             salesmanMap = baseDictMapStore.getSalesmanMap();
             if (salesmanMap == null) {
                 salesmanMap = buildMap(salesmanMapper.selectList(new LambdaQueryWrapper<Salesman>()
+                        .orderByDesc(Salesman::getSortOrder)
                         .orderByDesc(Salesman::getId)), Salesman::getId);
                 baseDictMapStore.setSalesmanMap(salesmanMap);
             }
@@ -138,6 +140,7 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
             ioTypeMap = baseDictMapStore.getIoTypeMap();
             if (ioTypeMap == null) {
                 ioTypeMap = buildMap(ioTypeMapper.selectList(new LambdaQueryWrapper<IoType>()
+                        .orderByDesc(IoType::getSortOrder)
                         .orderByDesc(IoType::getId)), IoType::getId);
                 baseDictMapStore.setIoTypeMap(ioTypeMap);
             }
@@ -178,6 +181,7 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
             productLocationMap = baseDictMapStore.getProductLocationMap();
             if (productLocationMap == null) {
                 productLocationMap = buildMap(productLocationMapper.selectList(new LambdaQueryWrapper<ProductLocation>()
+                        .orderByDesc(ProductLocation::getSortOrder)
                         .orderByDesc(ProductLocation::getId)), ProductLocation::getId);
                 baseDictMapStore.setProductLocationMap(productLocationMap);
             }
@@ -198,6 +202,7 @@ public class BaseDictMapServiceImpl implements BaseDictMapService {
             productUnitMap = baseDictMapStore.getProductUnitMap();
             if (productUnitMap == null) {
                 productUnitMap = buildMap(productUnitMapper.selectList(new LambdaQueryWrapper<ProductUnit>()
+                        .orderByDesc(ProductUnit::getSortOrder)
                         .orderByDesc(ProductUnit::getId)), ProductUnit::getId);
                 baseDictMapStore.setProductUnitMap(productUnitMap);
             }

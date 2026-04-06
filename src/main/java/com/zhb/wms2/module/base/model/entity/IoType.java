@@ -56,4 +56,11 @@ public class IoType extends BaseModel implements Serializable {
     @Min(value = 0, message = "适用范围不正确")
     @Max(value = 2, message = "适用范围不正确")
     private Integer scope;
+
+    /**
+     * 排序。
+     */
+    @TableField(value = "sort_order")
+    @Schema(description = "排序")
+    private Integer sortOrder;
 }

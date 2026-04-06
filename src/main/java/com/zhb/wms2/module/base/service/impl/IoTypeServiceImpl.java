@@ -45,6 +45,7 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
         if (!super.save(ioType)) {
             throw new BaseException("出入库类型新增失败");
         }
+        applyDefaultSortOrder(ioType.getId());
         // 类型字典被多个模块复用，保存后立即失效缓存。
         baseDictMapStore.clearIoTypeMap();
     }
@@ -64,6 +65,7 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
     @Override
     public List<IoType> listAllByScope(Integer scope) {
         LambdaQueryWrapper<IoType> wrapper = new LambdaQueryWrapper<IoType>()
+                .orderByDesc(IoType::getSortOrder)
                 .orderByDesc(IoType::getId);
         // “不限”范围类型同时对入库和出库可见。
         return list(wrapper.and(w -> w.in(IoType::getScope, ScopeEnum.COMMON.getCode(), scope)));
@@ -122,6 +124,7 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
         return new LambdaQueryWrapper<IoType>()
                 .like(StrUtil.isNotBlank(query.getName()), IoType::getName, query.getName())
                 .eq(query.getScope() != null, IoType::getScope, query.getScope())
+                .orderByDesc(IoType::getSortOrder)
                 .orderByDesc(IoType::getId);
     }
 
@@ -136,6 +139,18 @@ public class IoTypeServiceImpl extends ServiceImpl<IoTypeMapper, IoType> impleme
                 .ne(excludeId != null, IoType::getId, excludeId);
         if (count(wrapper) > 0) {
             throw new BaseException("同适用范围下名称已存在");
+        }
+    }
+
+    /**
+     * 新增后按主键回填默认排序。
+     */
+    private void applyDefaultSortOrder(Long id) {
+        IoType updateEntity = new IoType();
+        updateEntity.setId(id);
+        updateEntity.setSortOrder(Math.toIntExact(id));
+        if (!updateById(updateEntity)) {
+            throw new BaseException("出入库类型默认排序回填失败");
         }
     }
 }

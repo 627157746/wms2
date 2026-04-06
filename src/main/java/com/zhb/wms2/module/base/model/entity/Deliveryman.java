@@ -87,6 +87,13 @@ public class Deliveryman extends BaseModel implements Serializable {
     private Integer scope;
 
     /**
+     * 排序
+     */
+    @TableField(value = "sort_order")
+    @Schema(description="排序")
+    private Integer sortOrder;
+
+    /**
      * 备注
      */
     @TableField(value = "remark")

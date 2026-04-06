@@ -40,6 +40,7 @@ public class ProductUnitServiceImpl extends ServiceImpl<ProductUnitMapper, Produ
         if (!super.save(unit)) {
             throw new BaseException("商品单位新增失败");
         }
+        applyDefaultSortOrder(unit.getId());
         // 单位字典变更后清缓存，保证商品详情展示一致。
         baseDictMapStore.clearProductUnitMap();
     }
@@ -60,7 +61,9 @@ public class ProductUnitServiceImpl extends ServiceImpl<ProductUnitMapper, Produ
     @Override
     public List<ProductUnit> listAll() {
         // 下拉场景直接返回全量单位。
-        return list(new LambdaQueryWrapper<ProductUnit>().orderByDesc(ProductUnit::getId));
+        return list(new LambdaQueryWrapper<ProductUnit>()
+                .orderByDesc(ProductUnit::getSortOrder)
+                .orderByDesc(ProductUnit::getId));
     }
 
     /**
@@ -104,6 +107,7 @@ public class ProductUnitServiceImpl extends ServiceImpl<ProductUnitMapper, Produ
         // 单位列表仅支持名称模糊搜索。
         return new LambdaQueryWrapper<ProductUnit>()
                 .like(StrUtil.isNotBlank(query.getName()), ProductUnit::getName, query.getName())
+                .orderByDesc(ProductUnit::getSortOrder)
                 .orderByDesc(ProductUnit::getId);
     }
 
@@ -117,6 +121,18 @@ public class ProductUnitServiceImpl extends ServiceImpl<ProductUnitMapper, Produ
                 .ne(excludeId != null, ProductUnit::getId, excludeId);
         if (count(wrapper) > 0) {
             throw new BaseException("商品单位名称已存在");
+        }
+    }
+
+    /**
+     * 新增后按主键回填默认排序。
+     */
+    private void applyDefaultSortOrder(Long id) {
+        ProductUnit updateEntity = new ProductUnit();
+        updateEntity.setId(id);
+        updateEntity.setSortOrder(Math.toIntExact(id));
+        if (!updateById(updateEntity)) {
+            throw new BaseException("商品单位默认排序回填失败");
         }
     }
 }

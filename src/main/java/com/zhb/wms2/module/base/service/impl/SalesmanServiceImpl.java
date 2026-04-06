@@ -41,6 +41,7 @@ public class SalesmanServiceImpl extends ServiceImpl<SalesmanMapper, Salesman> i
         if (!super.save(salesman)) {
             throw new BaseException("业务员新增失败");
         }
+        applyDefaultSortOrder(salesman.getId());
         // 业务员字典被出库申请和出库单复用，新增后立即清缓存。
         baseDictMapStore.clearSalesmanMap();
     }
@@ -60,7 +61,9 @@ public class SalesmanServiceImpl extends ServiceImpl<SalesmanMapper, Salesman> i
     @Override
     public List<Salesman> listAll() {
         // 下拉场景直接使用全量业务员列表。
-        return list(new LambdaQueryWrapper<Salesman>().orderByDesc(Salesman::getId));
+        return list(new LambdaQueryWrapper<Salesman>()
+                .orderByDesc(Salesman::getSortOrder)
+                .orderByDesc(Salesman::getId));
     }
 
     /**
@@ -106,6 +109,19 @@ public class SalesmanServiceImpl extends ServiceImpl<SalesmanMapper, Salesman> i
         return new LambdaQueryWrapper<Salesman>()
                 .like(StrUtil.isNotBlank(query.getName()), Salesman::getName, query.getName())
                 .like(StrUtil.isNotBlank(query.getPhone()), Salesman::getPhone, query.getPhone())
+                .orderByDesc(Salesman::getSortOrder)
                 .orderByDesc(Salesman::getId);
+    }
+
+    /**
+     * 新增后按主键回填默认排序。
+     */
+    private void applyDefaultSortOrder(Long id) {
+        Salesman updateEntity = new Salesman();
+        updateEntity.setId(id);
+        updateEntity.setSortOrder(Math.toIntExact(id));
+        if (!updateById(updateEntity)) {
+            throw new BaseException("业务员默认排序回填失败");
+        }
     }
 }

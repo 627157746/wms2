@@ -535,8 +535,7 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
             return Collections.emptyMap();
         }
         List<IoApplyDetail> detailList = ioApplyDetailService.list(new LambdaQueryWrapper<IoApplyDetail>()
-                .in(IoApplyDetail::getApplyId, applyIds)
-                .orderByAsc(IoApplyDetail::getId));
+                .in(IoApplyDetail::getApplyId, applyIds));
         if (detailList.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -557,7 +556,10 @@ public class IoApplyServiceImpl extends ServiceImpl<IoApplyMapper, IoApply> impl
         return detailList.stream()
                 .map(detail -> buildDetailVO(detail, productMap.get(detail.getProductId()),
                         buildLocationCode(detail.getLocationId(), locationMap)))
-                .collect(Collectors.groupingBy(IoApplyDetailVO::getApplyId, LinkedHashMap::new, Collectors.toList()));
+                .collect(Collectors.groupingBy(IoApplyDetailVO::getApplyId, LinkedHashMap::new, Collectors.collectingAndThen(Collectors.toList(), list -> {
+                    list.sort(Comparator.comparing(IoApplyDetail::getId));
+                    return list;
+                })));
     }
 
     /**

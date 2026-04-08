@@ -1001,9 +1001,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      * 组装商品出入库流水展示对象。
      */
     private StockIoDetailVO buildStockIoDetailVO(IoOrder ioOrder, IoOrderDetail detail, Product product,
-                                                     Deliveryman deliveryman,
-                                                     Customer customer, Salesman salesman,
-                                                     Long currentStockQty) {
+                                                 Deliveryman deliveryman,
+                                                 Customer customer, Salesman salesman,
+                                                 Long currentStockQty) {
         return new StockIoDetailVO()
                 .setOrderNo(ioOrder.getOrderNo())
                 .setOrderId(ioOrder.getId())
@@ -1045,8 +1045,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
             return Collections.emptyMap();
         }
         List<IoOrderDetail> detailList = ioOrderDetailService.list(new LambdaQueryWrapper<IoOrderDetail>()
-                .in(IoOrderDetail::getOrderId, orderIds)
-                .orderByAsc(IoOrderDetail::getId));
+                .in(IoOrderDetail::getOrderId, orderIds));
         if (detailList.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -1068,7 +1067,10 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         return detailList.stream()
                 .map(detail -> buildDetailVO(detail, productMap.get(detail.getProductId()),
                         buildLocationCode(detail.getLocationId(), locationMap)))
-                .collect(Collectors.groupingBy(IoOrderDetailVO::getOrderId, LinkedHashMap::new, Collectors.toList()));
+                .collect(Collectors.groupingBy(IoOrderDetailVO::getOrderId, LinkedHashMap::new, Collectors.collectingAndThen(Collectors.toList(), list -> {
+                    list.sort(Comparator.comparing(IoOrderDetailVO::getId));
+                    return list;
+                })));
     }
 
     /**

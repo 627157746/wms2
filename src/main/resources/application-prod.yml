@@ -14,6 +14,8 @@ spring:
       maximum-pool-size: 20
       # 连接超时时间（毫秒）
       connection-timeout: 30000
+      # 校验超时
+      validation-timeout: 3000
       # 空闲连接存活时间（毫秒）
       idle-timeout: 600000
       # 连接最大存活时间（毫秒）

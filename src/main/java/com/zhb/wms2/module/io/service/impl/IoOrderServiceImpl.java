@@ -35,6 +35,7 @@ import com.zhb.wms2.module.product.model.vo.ProductPageVO;
 import com.zhb.wms2.module.product.model.vo.StockIoDetailVO;
 import com.zhb.wms2.module.product.service.ProductService;
 import com.zhb.wms2.module.product.service.ProductStockDetailService;
+import com.zhb.wms2.module.product.service.StockCheckTaskService;
 import com.zhb.wms2.module.product.service.support.ProductStockSummaryService;
 import com.zhb.wms2.util.PdfExportUtil;
 import jakarta.servlet.http.HttpServletResponse;
@@ -84,6 +85,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     private final IoOrderDetailService ioOrderDetailService;
     private final BaseDictMapService baseDictMapService;
     private final ProductStockSummaryService productStockSummaryService;
+    private final StockCheckTaskService stockCheckTaskService;
 
     /**
      * 分页查询出入库单，并补充申请号、基础资料和明细信息。
@@ -406,10 +408,14 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 dto.getSalesmanId(), dto.getIoTypeId());
         List<IoOrderDetailDTO> detailDTOList = dto.getDetailList();
         validateDetailRefs(detailDTOList);
-        return createOrder(dto.getOrderType(), null, dto.getBizDate(), dto.getDeliverymanId(),
+        IoOrder ioOrder = createOrder(dto.getOrderType(), null, dto.getBizDate(), dto.getDeliverymanId(),
                 IoBizTypeEnum.OUTBOUND.matches(dto.getOrderType()) ? dto.getCustomerId() : null,
                 IoBizTypeEnum.INBOUND.matches(dto.getOrderType()) ? dto.getWarehouseId() : null,
-                dto.getSalesmanId(), dto.getIoTypeId(), dto.getRemark(), detailDTOList).getId();
+                dto.getSalesmanId(), dto.getIoTypeId(), dto.getRemark(), detailDTOList);
+        if (dto.getStockCheckTaskId() != null) {
+            stockCheckTaskService.bindAdjustOrder(dto.getStockCheckTaskId(), ioOrder, detailDTOList);
+        }
+        return ioOrder.getId();
     }
 
     /**
@@ -422,6 +428,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         if (ioOrder == null) {
             throw new BaseException("出入库单不存在");
         }
+        stockCheckTaskService.validateOrderNotLinked(dto.getId());
 
         validateHeaderRefs(ioOrder.getOrderType(), dto.getDeliverymanId(), dto.getCustomerId(), dto.getWarehouseId(),
                 dto.getSalesmanId(), dto.getIoTypeId());
@@ -472,6 +479,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         if (detail == null) {
             throw new BaseException("出入库单明细不存在");
         }
+        stockCheckTaskService.validateOrderNotLinked(detail.getOrderId());
         IoOrder ioOrder = getById(detail.getOrderId());
         if (ioOrder == null) {
             throw new BaseException("出入库单不存在");
@@ -529,6 +537,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         if (ioOrder == null) {
             throw new BaseException("出入库单不存在");
         }
+        stockCheckTaskService.validateOrderNotLinked(id);
         List<IoOrderDetail> detailList = ioOrderDetailService.list(
                 new LambdaQueryWrapper<IoOrderDetail>().eq(IoOrderDetail::getOrderId, id));
         // 删除单据前必须先撤销库存影响，保证库存汇总和明细都回到删除前状态。

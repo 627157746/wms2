@@ -20,6 +20,7 @@ import com.zhb.wms2.module.io.service.IoOrderDetailService;
 import com.zhb.wms2.module.product.mapper.ProductMapper;
 import com.zhb.wms2.module.product.model.entity.Product;
 import com.zhb.wms2.module.product.model.entity.ProductStockDetail;
+import com.zhb.wms2.module.product.model.entity.StockCheckTaskDetail;
 import com.zhb.wms2.module.product.model.query.ProductQuery;
 import com.zhb.wms2.module.product.model.query.StockDistributionQuery;
 import com.zhb.wms2.module.product.model.vo.ProductPageVO;
@@ -28,6 +29,7 @@ import com.zhb.wms2.module.product.model.vo.StockDistributionGroupVO;
 import com.zhb.wms2.module.product.model.vo.StockDistributionItemVO;
 import com.zhb.wms2.module.product.service.ProductService;
 import com.zhb.wms2.module.product.service.ProductStockDetailService;
+import com.zhb.wms2.module.product.service.StockCheckTaskDetailService;
 import com.zhb.wms2.util.PdfExportUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +55,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     private final ProductStockDetailService productStockDetailService;
     private final IoApplyDetailService ioApplyDetailService;
     private final IoOrderDetailService ioOrderDetailService;
+    private final StockCheckTaskDetailService stockCheckTaskDetailService;
 
     /**
      * 新增商品，并在保存前做规范化与唯一性校验。
@@ -256,6 +259,11 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 new LambdaQueryWrapper<IoOrderDetail>().eq(IoOrderDetail::getProductId, id));
         if (ioOrderDetailCount > 0) {
             throw new BaseException("该商品已被出入库记录使用，无法删除");
+        }
+        long stockCheckDetailCount = stockCheckTaskDetailService.count(
+                new LambdaQueryWrapper<StockCheckTaskDetail>().eq(StockCheckTaskDetail::getProductId, id));
+        if (stockCheckDetailCount > 0) {
+            throw new BaseException("该商品已被盘点任务使用，无法删除");
         }
         if (product.getTotalStockQty() != null && product.getTotalStockQty() > 0) {
             throw new BaseException("该商品仍有库存，无法删除");

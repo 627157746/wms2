@@ -81,6 +81,13 @@ public class IoOrderCreateDTO {
     private String remark;
 
     /**
+     * 盘点任务 ID，仅用于回填盘点调整单。
+     */
+    @Schema(description = "盘点任务ID，仅用于回填盘点调整单")
+    @Min(value = 1, message = "盘点任务不正确")
+    private Long stockCheckTaskId;
+
+    /**
      * 出入库明细列表。
      */
     @Schema(description = "出入库明细")

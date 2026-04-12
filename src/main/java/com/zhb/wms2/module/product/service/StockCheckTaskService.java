@@ -54,6 +54,11 @@ public interface StockCheckTaskService extends IService<StockCheckTask> {
     Long addCategoryProducts(StockCheckTaskAddCategoryDTO dto);
 
     /**
+     * 删除盘点任务。
+     */
+    void removeByIdDirect(Long id);
+
+    /**
      * 删除盘点商品。
      */
     void removeDetailById(Long detailId);

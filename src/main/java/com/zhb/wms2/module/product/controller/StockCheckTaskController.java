@@ -84,6 +84,15 @@ public class StockCheckTaskController {
         return R.optOk();
     }
 
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除盘点任务")
+    public R<Void> delete(
+            @Parameter(description = "盘点任务ID", required = true)
+            @PathVariable @NotNull @Min(1) Long id) {
+        stockCheckTaskService.removeByIdDirect(id);
+        return R.optOk();
+    }
+
     @PutMapping("/{id}/finish")
     @Operation(summary = "手动结束盘点")
     public R<Void> finish(

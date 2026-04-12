@@ -188,6 +188,19 @@ public class StockCheckTaskServiceImpl extends ServiceImpl<StockCheckTaskMapper,
     }
 
     /**
+     * 直接删除盘点任务及其明细，不做状态和关联校验。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeByIdDirect(Long id) {
+        stockCheckTaskDetailService.remove(new LambdaQueryWrapper<StockCheckTaskDetail>()
+                .eq(StockCheckTaskDetail::getTaskId, id));
+        if (!removeById(id)) {
+            throw new BaseException("盘点任务不存在");
+        }
+    }
+
+    /**
      * 删除盘点商品，仅允许盘点中操作。
      */
     @Override

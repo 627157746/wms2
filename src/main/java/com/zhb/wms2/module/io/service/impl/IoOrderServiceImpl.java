@@ -225,9 +225,9 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     }
 
     /**
-     * 查询每条出入库明细当前对应的库存数量。
+     * 查询每条出入库明细在执行完成后的结存数量。
      */
-    private Map<Long, Long> buildCurrentStockQtyMap(List<IoOrderDetail> detailList) {
+    private Map<Long, Long> buildStockBalanceMap(List<IoOrderDetail> detailList) {
         if (detailList == null || detailList.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -238,7 +238,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         if (detailIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        // 由 mapper 一次性计算每条明细对应的当前库存，避免在 Java 侧拼库存流水。
+        // 由 mapper 一次性计算每条明细执行完成后的结存，避免在 Java 侧拼库存流水。
         return ioOrderDetailMapper.selectCurrentStockQtyByDetailIds(detailIds).stream()
                 .collect(Collectors.toMap(IoOrderDetailStockQtyDTO::getDetailId,
                         item -> item.getCurrentStockQty() == null ? 0L : item.getCurrentStockQty(),
@@ -275,20 +275,20 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 ? Map.of() : dictMap.getCustomerMap();
         Map<Long, Salesman> salesmanMap = dictMap.getSalesmanMap() == null
                 ? Map.of() : dictMap.getSalesmanMap();
-        Map<Long, Long> stockQtyMap = buildCurrentStockQtyMap(detailList);
+        Map<Long, Long> stockBalanceMap = buildStockBalanceMap(detailList);
         return detailList.stream()
                 .map(detail -> {
                     IoOrder ioOrder = orderMap.get(detail.getOrderId());
                     if (ioOrder == null) {
                         return null;
                     }
-                    // 当前库存按明细 ID 反查，便于页面展示该笔单据执行后的库存结果。
+                    // 按明细 ID 反查该笔流水执行完成后的结存，便于页面稳定展示历史库存结果。
                     Product product = productMap.get(detail.getProductId());
                     return buildStockIoDetailVO(ioOrder, detail, product,
                             deliverymanMap.get(ioOrder.getDeliverymanId()),
                             customerMap.get(ioOrder.getCustomerId()),
                             salesmanMap.get(ioOrder.getSalesmanId()),
-                            stockQtyMap.getOrDefault(detail.getId(), 0L));
+                            stockBalanceMap.getOrDefault(detail.getId(), 0L));
                 })
                 .filter(Objects::nonNull)
                 .toList();
@@ -1012,7 +1012,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
     private StockIoDetailVO buildStockIoDetailVO(IoOrder ioOrder, IoOrderDetail detail, Product product,
                                                  Deliveryman deliveryman,
                                                  Customer customer, Salesman salesman,
-                                                 Long currentStockQty) {
+                                                 Long stockBalanceQty) {
         return new StockIoDetailVO()
                 .setOrderNo(ioOrder.getOrderNo())
                 .setOrderId(ioOrder.getId())
@@ -1024,7 +1024,7 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
                 .setCustomer(customer)
                 .setSalesman(salesman)
                 .setProduct(product)
-                .setCurrentStockQty(currentStockQty == null ? 0L : currentStockQty);
+                .setCurrentStockQty(stockBalanceQty == null ? 0L : stockBalanceQty);
     }
 
     /**

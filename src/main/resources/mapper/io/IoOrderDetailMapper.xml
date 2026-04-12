@@ -68,8 +68,7 @@
                    end), 0) as currentStockQty
         from io_order_detail t
                 join io_order_detail d on d.product_id = t.product_id
-            and d.biz_date <![CDATA[ <= ]]> t.biz_date
-            and d.order_id <![CDATA[ <= ]]> t.order_id
+            and (d.biz_date, d.order_id, d.id) <![CDATA[ <= ]]> (t.biz_date, t.order_id, t.id)
         where t.id in
         <foreach collection="detailIds" item="detailId" open="(" separator="," close=")">
             #{detailId}

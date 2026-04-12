@@ -17,4 +17,5 @@ CREATE TABLE IF NOT EXISTS io_order_detail (
 CREATE INDEX idx_io_order_detail_order ON io_order_detail(order_type, order_id);
 CREATE INDEX idx_io_order_detail_product ON io_order_detail(product_id);
 CREATE INDEX idx_io_order_detail_product_biz_date ON io_order_detail(product_id, biz_date);
+CREATE INDEX idx_io_order_detail_product_flow ON io_order_detail(product_id, biz_date, order_id, id);
 CREATE INDEX idx_io_order_detail_location ON io_order_detail(location_id);

@@ -75,6 +75,24 @@ public class ProductController {
         return R.ok(productService.getStockStat(query));
     }
 
+    @GetMapping("/export")
+    @Operation(summary = "导出商品")
+    public void export(
+            @Parameter(description = "查询条件")
+            @Validated ProductQuery query,
+            HttpServletResponse response) throws IOException {
+        productService.export(query, response);
+    }
+
+    @GetMapping("/exportPdf")
+    @Operation(summary = "导出商品PDF")
+    public void exportPdf(
+            @Parameter(description = "查询条件")
+            @Validated ProductQuery query,
+            HttpServletResponse response) throws IOException {
+        productService.exportPdf(query, response);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "查询商品详情")
     public R<ProductPageVO> getById(

@@ -44,6 +44,16 @@ public interface ProductService extends IService<Product> {
     ProductStockStatVO getStockStat(ProductQuery query);
 
     /**
+     * 导出商品。
+     */
+    void export(ProductQuery query, HttpServletResponse response) throws IOException;
+
+    /**
+     * 导出商品 PDF。
+     */
+    void exportPdf(ProductQuery query, HttpServletResponse response) throws IOException;
+
+    /**
      * 批量查询商品详情映射。
      */
     Map<Long, ProductPageVO> getDetailMapByIds(Collection<Long> ids);

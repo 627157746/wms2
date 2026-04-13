@@ -138,6 +138,36 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     /**
+     * 导出商品 Excel。
+     */
+    @Override
+    public void export(ProductQuery query, HttpServletResponse response) throws IOException {
+        List<ProductPageVO> voList = listExportData(query);
+        String fileName = URLEncoder.encode("商品列表.xlsx", StandardCharsets.UTF_8)
+                .replaceAll("\\+", "%20");
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setHeader("Content-Disposition", "attachment;filename*=UTF-8''" + fileName);
+
+        try (ExcelWriter writer = ExcelUtil.getWriter(true)) {
+            writer.renameSheet("商品列表");
+            writeProductSheet(writer, voList);
+            writer.autoSizeColumnAll();
+            writer.flush(response.getOutputStream(), true);
+        }
+    }
+
+    /**
+     * 导出商品 PDF。
+     */
+    @Override
+    public void exportPdf(ProductQuery query, HttpServletResponse response) throws IOException {
+        List<ProductPageVO> voList = listExportData(query);
+        PdfExportUtil.writePdf("商品列表.pdf", "商品列表", true,
+                buildProductPdfBody(voList), response);
+    }
+
+    /**
      * 批量查询商品详情映射，供其他模块复用。
      */
     @Override
@@ -421,6 +451,98 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 用有序映射保持后续聚合结果的稳定性。
         return baseMapper.selectBatchIds(productIds).stream()
                 .collect(LinkedHashMap::new, (map, product) -> map.put(product.getId(), product), Map::putAll);
+    }
+
+    /**
+     * 查询商品导出数据，并按分类 ID 排序。
+     */
+    private List<ProductPageVO> listExportData(ProductQuery query) {
+        BaseDictMapDTO dictMap = baseDictMapService.getBaseDictMap();
+        Map<Long, ProductCategory> categoryMap = dictMap.getProductCategoryMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductCategoryMap();
+        List<Product> productList = list(buildFilterWrapper(query, categoryMap));
+        if (productList.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, ProductLocation> locationMap = dictMap.getProductLocationMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductLocationMap();
+        Map<Long, ProductUnit> unitMap = dictMap.getProductUnitMap() == null
+                ? Collections.emptyMap()
+                : dictMap.getProductUnitMap();
+        return productList.stream()
+                .map(product -> buildProductPageVO(product, categoryMap, locationMap, unitMap))
+                .sorted(buildProductExportComparator())
+                .toList();
+    }
+
+    /**
+     * 构建商品导出排序规则。
+     */
+    private Comparator<ProductPageVO> buildProductExportComparator() {
+        return Comparator
+                .comparing(ProductPageVO::getCategoryId, Comparator.nullsLast(Long::compareTo))
+                .thenComparing(ProductPageVO::getId, Comparator.nullsLast(Long::compareTo));
+    }
+
+    /**
+     * 写出商品 Excel。
+     */
+    private void writeProductSheet(ExcelWriter writer, List<ProductPageVO> voList) {
+        writer.writeRow(List.of("分类", "名称", "编号", "条形码", "型号", "单位", "最低库存", "当前库存", "货位编码", "备注"));
+        voList.forEach(item -> writer.writeRow(Arrays.asList(
+                item.getProductCategoryName(),
+                item.getName(),
+                item.getCode(),
+                item.getBarcode(),
+                item.getModel(),
+                item.getProductUnitName(),
+                item.getMinStock(),
+                item.getTotalStockQty(),
+                buildLocationCodeText(item.getLocationCodes()),
+                item.getRemark()
+        )));
+    }
+
+    /**
+     * 构建商品 PDF 主体。
+     */
+    private String buildProductPdfBody(List<ProductPageVO> voList) {
+        if (voList == null || voList.isEmpty()) {
+            return "<div class=\"empty\">暂无数据</div>";
+        }
+        StringBuilder html = new StringBuilder();
+        html.append("<table><thead><tr>")
+                .append("<th>分类</th><th>名称</th><th>编号</th><th>条形码</th><th>型号</th>")
+                .append("<th>单位</th><th>最低库存</th><th>当前库存</th><th>货位编码</th><th>备注</th>")
+                .append("</tr></thead><tbody>");
+        for (ProductPageVO item : voList) {
+            html.append("<tr>")
+                    .append("<td>").append(PdfExportUtil.escape(item.getProductCategoryName())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(item.getName())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(item.getCode())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(item.getBarcode())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(item.getModel())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(item.getProductUnitName())).append("</td>")
+                    .append("<td>").append(item.getMinStock() == null ? "" : item.getMinStock()).append("</td>")
+                    .append("<td>").append(item.getTotalStockQty() == null ? "" : item.getTotalStockQty()).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(buildLocationCodeText(item.getLocationCodes()))).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(item.getRemark())).append("</td>")
+                    .append("</tr>");
+        }
+        html.append("</tbody></table>");
+        return html.toString();
+    }
+
+    /**
+     * 拼接货位编码展示文本。
+     */
+    private String buildLocationCodeText(List<String> locationCodes) {
+        if (locationCodes == null || locationCodes.isEmpty()) {
+            return null;
+        }
+        return String.join("，", locationCodes);
     }
 
     /**

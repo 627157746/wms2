@@ -1,5 +1,7 @@
 package com.zhb.wms2.module.product.service.impl;
 
+import cn.hutool.poi.excel.ExcelUtil;
+import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -23,11 +25,18 @@ import com.zhb.wms2.module.product.model.vo.*;
 import com.zhb.wms2.module.product.service.ProductService;
 import com.zhb.wms2.module.product.service.StockCheckTaskDetailService;
 import com.zhb.wms2.module.product.service.StockCheckTaskService;
+import com.zhb.wms2.util.PdfExportUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -45,6 +54,10 @@ public class StockCheckTaskServiceImpl extends ServiceImpl<StockCheckTaskMapper,
     private static final String TASK_NO_PREFIX = "PD";
 
     private static final int TASK_NO_DIGIT_LENGTH = 6;
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final ProductService productService;
     private final StockCheckTaskDetailService stockCheckTaskDetailService;
@@ -98,6 +111,36 @@ public class StockCheckTaskServiceImpl extends ServiceImpl<StockCheckTaskMapper,
                 .setLossCount(stat.getLossCount());
         vo.setDetailList(buildDetailVOList(detailList));
         return vo;
+    }
+
+    /**
+     * 导出盘点任务详情 Excel。
+     */
+    @Override
+    public void exportDetail(Long id, HttpServletResponse response) throws IOException {
+        StockCheckTaskVO vo = getDetailById(id);
+        String fileName = URLEncoder.encode(buildExportFileName(vo, ".xlsx"), StandardCharsets.UTF_8)
+                .replaceAll("\\+", "%20");
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setHeader("Content-Disposition", "attachment;filename*=UTF-8''" + fileName);
+
+        try (ExcelWriter writer = ExcelUtil.getWriter(true)) {
+            writer.renameSheet("盘点任务详情");
+            writeDetailSheet(writer, vo);
+            writer.autoSizeColumnAll();
+            writer.flush(response.getOutputStream(), true);
+        }
+    }
+
+    /**
+     * 导出盘点任务详情 PDF。
+     */
+    @Override
+    public void exportDetailPdf(Long id, HttpServletResponse response) throws IOException {
+        StockCheckTaskVO vo = getDetailById(id);
+        PdfExportUtil.writePdf(buildExportFileName(vo, ".pdf"), "盘点任务详情", true,
+                buildDetailPdfBody(vo), response);
     }
 
     /**
@@ -324,6 +367,120 @@ public class StockCheckTaskServiceImpl extends ServiceImpl<StockCheckTaskMapper,
                 .ge(query.getTaskDateStart() != null, StockCheckTask::getTaskDate, query.getTaskDateStart())
                 .le(query.getTaskDateEnd() != null, StockCheckTask::getTaskDate, query.getTaskDateEnd())
                 .orderByDesc(StockCheckTask::getId);
+    }
+
+    /**
+     * 写出盘点任务详情 Excel。
+     */
+    private void writeDetailSheet(ExcelWriter writer, StockCheckTaskVO vo) {
+        writer.writeRow(Arrays.asList("任务号", vo.getTaskNo(), "盘点日期", valueToText(vo.getTaskDate())));
+        writer.writeRow(Arrays.asList("状态", vo.getStatusName(), "结束时间", valueToText(vo.getFinishTime())));
+        writer.writeRow(Arrays.asList("盘盈入库单号", vo.getProfitOrderNo(), "盘亏出库单号", vo.getLossOrderNo()));
+        writer.writeRow(Arrays.asList("备注", vo.getRemark()));
+        writer.writeRow(List.of());
+        writer.writeRow(Arrays.asList("应盘数", vo.getTotalCount(), "已盘数", vo.getCountedCount(), "未盘数", vo.getUncountedCount()));
+        writer.writeRow(Arrays.asList("盘盈数", vo.getProfitCount(), "盘亏数", vo.getLossCount()));
+        writer.writeRow(List.of());
+        writer.writeRow(List.of("商品名称", "商品编号", "商品型号", "商品分类", "商品单位", "账面数量",
+                "盘点数量", "差异数量", "盘点结果", "录入时间", "备注"));
+        List<StockCheckTaskDetailVO> detailList = vo.getDetailList();
+        if (detailList == null || detailList.isEmpty()) {
+            return;
+        }
+        detailList.forEach(detail -> writer.writeRow(Arrays.asList(
+                detail.getProduct() == null ? null : detail.getProduct().getName(),
+                detail.getProduct() == null ? null : detail.getProduct().getCode(),
+                detail.getProduct() == null ? null : detail.getProduct().getModel(),
+                detail.getProduct() == null ? null : detail.getProduct().getProductCategoryName(),
+                detail.getProduct() == null ? null : detail.getProduct().getProductUnitName(),
+                detail.getSnapshotQty(),
+                detail.getActualQty(),
+                detail.getDiffQty(),
+                detail.getResultTypeName(),
+                valueToText(detail.getCountTime()),
+                detail.getRemark()
+        )));
+    }
+
+    /**
+     * 构建盘点任务详情 PDF 主体。
+     */
+    private String buildDetailPdfBody(StockCheckTaskVO vo) {
+        StringBuilder html = new StringBuilder();
+        html.append("<div class=\"section\">")
+                .append("<div class=\"section-title\">任务信息</div>")
+                .append("<table><tbody>")
+                .append("<tr><th>任务号</th><td>").append(PdfExportUtil.escape(vo.getTaskNo())).append("</td>")
+                .append("<th>盘点日期</th><td>").append(PdfExportUtil.escape(valueToText(vo.getTaskDate()))).append("</td></tr>")
+                .append("<tr><th>状态</th><td>").append(PdfExportUtil.escape(vo.getStatusName())).append("</td>")
+                .append("<th>结束时间</th><td>").append(PdfExportUtil.escape(valueToText(vo.getFinishTime()))).append("</td></tr>")
+                .append("<tr><th>盘盈入库单号</th><td>").append(PdfExportUtil.escape(vo.getProfitOrderNo())).append("</td>")
+                .append("<th>盘亏出库单号</th><td>").append(PdfExportUtil.escape(vo.getLossOrderNo())).append("</td></tr>")
+                .append("<tr><th>备注</th><td colspan=\"3\">").append(PdfExportUtil.escape(vo.getRemark())).append("</td></tr>")
+                .append("</tbody></table></div>");
+        html.append("<div class=\"section\">")
+                .append("<div class=\"section-title\">统计信息</div>")
+                .append("<table><tbody>")
+                .append("<tr><th>应盘数</th><td>").append(vo.getTotalCount() == null ? "" : vo.getTotalCount()).append("</td>")
+                .append("<th>已盘数</th><td>").append(vo.getCountedCount() == null ? "" : vo.getCountedCount()).append("</td>")
+                .append("<th>未盘数</th><td>").append(vo.getUncountedCount() == null ? "" : vo.getUncountedCount()).append("</td></tr>")
+                .append("<tr><th>盘盈数</th><td>").append(vo.getProfitCount() == null ? "" : vo.getProfitCount()).append("</td>")
+                .append("<th>盘亏数</th><td>").append(vo.getLossCount() == null ? "" : vo.getLossCount()).append("</td>")
+                .append("<th></th><td></td></tr>")
+                .append("</tbody></table></div>");
+        html.append("<div class=\"section\">")
+                .append("<div class=\"section-title\">盘点明细</div>");
+        List<StockCheckTaskDetailVO> detailList = vo.getDetailList();
+        if (detailList == null || detailList.isEmpty()) {
+            html.append("<div class=\"empty\">暂无数据</div></div>");
+            return html.toString();
+        }
+        html.append("<table><thead><tr>")
+                .append("<th>商品名称</th><th>商品编号</th><th>商品型号</th><th>商品分类</th><th>商品单位</th>")
+                .append("<th>账面数量</th><th>盘点数量</th><th>差异数量</th><th>盘点结果</th><th>录入时间</th><th>备注</th>")
+                .append("</tr></thead><tbody>");
+        for (StockCheckTaskDetailVO detail : detailList) {
+            ProductPageVO product = detail.getProduct();
+            html.append("<tr>")
+                    .append("<td>").append(PdfExportUtil.escape(product == null ? null : product.getName())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(product == null ? null : product.getCode())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(product == null ? null : product.getModel())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(product == null ? null : product.getProductCategoryName())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(product == null ? null : product.getProductUnitName())).append("</td>")
+                    .append("<td>").append(detail.getSnapshotQty() == null ? "" : detail.getSnapshotQty()).append("</td>")
+                    .append("<td>").append(detail.getActualQty() == null ? "" : detail.getActualQty()).append("</td>")
+                    .append("<td>").append(detail.getDiffQty() == null ? "" : detail.getDiffQty()).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(detail.getResultTypeName())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(valueToText(detail.getCountTime()))).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(detail.getRemark())).append("</td>")
+                    .append("</tr>");
+        }
+        html.append("</tbody></table></div>");
+        return html.toString();
+    }
+
+    /**
+     * 构建导出文件名。
+     */
+    private String buildExportFileName(StockCheckTaskVO vo, String suffix) {
+        String taskNo = vo.getTaskNo() == null || vo.getTaskNo().isBlank() ? String.valueOf(vo.getId()) : vo.getTaskNo();
+        return "盘点任务详情-" + taskNo + suffix;
+    }
+
+    /**
+     * 将对象安全转换为文本。
+     */
+    private String valueToText(Object value) {
+        if (value == null) {
+            return "";
+        }
+        if (value instanceof LocalDate localDate) {
+            return localDate.format(DATE_FORMATTER);
+        }
+        if (value instanceof LocalDateTime localDateTime) {
+            return localDateTime.format(DATE_TIME_FORMATTER);
+        }
+        return value.toString();
     }
 
     /**

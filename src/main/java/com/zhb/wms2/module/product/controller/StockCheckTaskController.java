@@ -14,11 +14,14 @@ import com.zhb.wms2.module.product.service.StockCheckTaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 /**
  * 盘点任务控制器。
@@ -116,5 +119,23 @@ public class StockCheckTaskController {
             @Parameter(description = "盘点任务ID", required = true)
             @PathVariable @NotNull @Min(1) Long id) {
         return R.ok(stockCheckTaskService.getDetailById(id));
+    }
+
+    @GetMapping("/{id}/export")
+    @Operation(summary = "导出盘点任务详情")
+    public void export(
+            @Parameter(description = "盘点任务ID", required = true)
+            @PathVariable @NotNull @Min(1) Long id,
+            HttpServletResponse response) throws IOException {
+        stockCheckTaskService.exportDetail(id, response);
+    }
+
+    @GetMapping("/{id}/exportPdf")
+    @Operation(summary = "导出盘点任务详情PDF")
+    public void exportPdf(
+            @Parameter(description = "盘点任务ID", required = true)
+            @PathVariable @NotNull @Min(1) Long id,
+            HttpServletResponse response) throws IOException {
+        stockCheckTaskService.exportDetailPdf(id, response);
     }
 }

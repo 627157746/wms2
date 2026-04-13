@@ -13,6 +13,9 @@ import com.zhb.wms2.module.product.model.entity.StockCheckTask;
 import com.zhb.wms2.module.product.model.query.StockCheckTaskQuery;
 import com.zhb.wms2.module.product.model.vo.StockCheckTaskPageVO;
 import com.zhb.wms2.module.product.model.vo.StockCheckTaskVO;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -32,6 +35,16 @@ public interface StockCheckTaskService extends IService<StockCheckTask> {
      * 查询盘点任务详情。
      */
     StockCheckTaskVO getDetailById(Long id);
+
+    /**
+     * 导出盘点任务详情。
+     */
+    void exportDetail(Long id, HttpServletResponse response) throws IOException;
+
+    /**
+     * 导出盘点任务详情 PDF。
+     */
+    void exportDetailPdf(Long id, HttpServletResponse response) throws IOException;
 
     /**
      * 创建盘点任务。

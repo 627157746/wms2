@@ -76,6 +76,13 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      */
     private static final int ORDER_NO_DIGIT_LENGTH = 6;
 
+    /**
+     * 商品出入库明细导出表头。
+     */
+    private static final List<String> STOCK_IO_DETAIL_EXPORT_HEADERS = List.of(
+            "单号", "业务日期", "单据类型", "数量", "该笔出入库后的库存", "客户", "业务员", "送货员",
+            "商品名称", "商品编号", "商品型号");
+
     private final IoApplyMapper ioApplyMapper;
     private final ProductMapper productMapper;
     private final ProductService productService;
@@ -298,21 +305,8 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
      * 写出商品出入库流水 Excel。
      */
     private void writeStockIoDetailSheet(ExcelWriter writer, List<StockIoDetailVO> voList) {
-        writer.writeRow(List.of("单号", "单据类型", "业务日期", "数量", "送货员", "客户", "业务员",
-                "商品名称", "商品编号", "商品型号", "该笔出入库后的库存"));
-        voList.forEach(item -> writer.writeRow(Arrays.asList(
-                item.getOrderNo(),
-                item.getOrderTypeName(),
-                item.getBizDate().toString(),
-                item.getQty(),
-                item.getDeliveryman() == null ? null : item.getDeliveryman().getName(),
-                item.getCustomer() == null ? null : item.getCustomer().getName(),
-                item.getSalesman() == null ? null : item.getSalesman().getName(),
-                item.getProduct() == null ? null : item.getProduct().getName(),
-                item.getProduct() == null ? null : item.getProduct().getCode(),
-                item.getProduct() == null ? null : item.getProduct().getModel(),
-                item.getCurrentStockQty()
-        )));
+        writer.writeRow(STOCK_IO_DETAIL_EXPORT_HEADERS);
+        voList.forEach(item -> writer.writeRow(buildStockIoDetailExportRow(item)));
     }
 
     /**
@@ -324,35 +318,53 @@ public class IoOrderServiceImpl extends ServiceImpl<IoOrderMapper, IoOrder> impl
         }
         StringBuilder html = new StringBuilder();
         html.append("<table><thead><tr>")
-                .append("<th>单号</th>")
-                .append("<th>单据类型</th>")
-                .append("<th>业务日期</th>")
-                .append("<th>数量</th>")
-                .append("<th>送货员</th>")
-                .append("<th>客户</th>")
-                .append("<th>业务员</th>")
-                .append("<th>商品名称</th>")
-                .append("<th>商品编号</th>")
-                .append("<th>商品型号</th>")
-                .append("<th>该笔出入库后的库存</th>")
+                .append(buildStockIoDetailPdfHeader())
                 .append("</tr></thead><tbody>");
         for (StockIoDetailVO item : voList) {
             html.append("<tr>")
                     .append("<td>").append(PdfExportUtil.escape(item.getOrderNo())).append("</td>")
-                    .append("<td>").append(PdfExportUtil.escape(item.getOrderTypeName())).append("</td>")
                     .append("<td>").append(item.getBizDate() == null ? "" : PdfExportUtil.escape(item.getBizDate().toString())).append("</td>")
+                    .append("<td>").append(PdfExportUtil.escape(item.getOrderTypeName())).append("</td>")
                     .append("<td>").append(item.getQty() == null ? "" : item.getQty()).append("</td>")
-                    .append("<td>").append(item.getDeliveryman() == null ? "" : PdfExportUtil.escape(item.getDeliveryman().getName())).append("</td>")
+                    .append("<td>").append(item.getCurrentStockQty() == null ? "" : item.getCurrentStockQty()).append("</td>")
                     .append("<td>").append(item.getCustomer() == null ? "" : PdfExportUtil.escape(item.getCustomer().getName())).append("</td>")
                     .append("<td>").append(item.getSalesman() == null ? "" : PdfExportUtil.escape(item.getSalesman().getName())).append("</td>")
+                    .append("<td>").append(item.getDeliveryman() == null ? "" : PdfExportUtil.escape(item.getDeliveryman().getName())).append("</td>")
                     .append("<td>").append(item.getProduct() == null ? "" : PdfExportUtil.escape(item.getProduct().getName())).append("</td>")
                     .append("<td>").append(item.getProduct() == null ? "" : PdfExportUtil.escape(item.getProduct().getCode())).append("</td>")
                     .append("<td>").append(item.getProduct() == null ? "" : PdfExportUtil.escape(item.getProduct().getModel())).append("</td>")
-                    .append("<td>").append(item.getCurrentStockQty() == null ? "" : item.getCurrentStockQty()).append("</td>")
                     .append("</tr>");
         }
         html.append("</tbody></table>");
         return html.toString();
+    }
+
+    /**
+     * 构建商品出入库明细导出单行数据。
+     */
+    private List<Object> buildStockIoDetailExportRow(StockIoDetailVO item) {
+        return Arrays.asList(
+                item.getOrderNo(),
+                item.getBizDate().toString(),
+                item.getOrderTypeName(),
+                item.getQty(),
+                item.getCurrentStockQty(),
+                item.getCustomer() == null ? "" : item.getCustomer().getName(),
+                item.getSalesman() == null ? "" : item.getSalesman().getName(),
+                item.getDeliveryman() == null ? "" : item.getDeliveryman().getName(),
+                item.getProduct() == null ? "" : item.getProduct().getName(),
+                item.getProduct() == null ? "" : item.getProduct().getCode(),
+                item.getProduct() == null ? "" : item.getProduct().getModel()
+        );
+    }
+
+    /**
+     * 构建商品出入库明细 PDF 表头。
+     */
+    private String buildStockIoDetailPdfHeader() {
+        return STOCK_IO_DETAIL_EXPORT_HEADERS.stream()
+                .map(header -> "<th>" + PdfExportUtil.escape(header) + "</th>")
+                .collect(Collectors.joining());
     }
 
     /**

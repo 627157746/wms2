@@ -205,7 +205,7 @@ public class StockCheckTaskServiceImpl extends ServiceImpl<StockCheckTaskMapper,
         getTaskChecked(dto.getTaskId(), true);
         List<Product> productList = productService.list(new LambdaQueryWrapper<Product>()
                 .gt(Product::getTotalStockQty, 0)
-                .orderByAsc(Product::getId));
+                .orderByAsc(Product::getCategoryId));
         return addProductsToTask(dto.getTaskId(), productList);
     }
 
